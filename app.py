@@ -3,13 +3,7 @@ import joblib
 import re
 import string
 import base64
-# PENTING: Pastikan Sastrawi ada di requirements.txt!
-try:
-    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
-    FACTORY = StemmerFactory()
-    STEMMER = FACTORY.create_stemmer()
-except:
-    STEMMER = None
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory # Jika ini digunakan
 
 
 # ==========================================
@@ -29,13 +23,12 @@ def get_base64_of_bin_file(file_path):
     except FileNotFoundError:
         return None
 
-# NAMA FILE GAMBAR (Asumsi gamabr)
 BG_IMAGE_FILENAME = "gamabr" 
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 
 
 # ==========================================
-# 1️⃣ CSS STYLE INJECTION (Biru Dongker Glassmorphism)
+# 1️⃣ CSS STYLE INJECTION (Minimalis & Fokus)
 # ==========================================
 # --- Background Image + Overlay ---
 if BG_IMAGE_B64:
@@ -60,7 +53,7 @@ else:
     </style>
     """
 
-# --- UI Styling (Font, Card, Button) ---
+# --- UI Styling (Fokus pada Badge) ---
 ui_style = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
@@ -87,31 +80,32 @@ h1 {
     letter-spacing: 1px;
 }
 
-/* Kartu Hasil (Centered) */
 .result-container { display: flex; justify-content: center; margin-top: 30px; }
+
+/* Kartu Hasil Sederhana */
 .result-card {
     background: rgba(17, 34, 64, 0.5); 
     backdrop-filter: blur(10px); 
     border-radius: 16px;
-    padding: 25px;
+    padding: 20px 25px; /* Padding dikurangi */
     width: 100%;
+    max-width: 400px; /* Batasan lebar untuk hasil minimalis */
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .sentiment-badge { 
-    font-size: 24px; font-weight: 700; padding: 12px 35px; border-radius: 50px; 
-    display: inline-block; color: white; margin-bottom: 20px; 
+    font-size: 28px; /* Lebih besar */
+    font-weight: 700; 
+    padding: 15px 40px; 
+    border-radius: 50px; 
+    display: inline-block; 
+    color: white; 
+    margin: 10px 0; /* Fokus hanya pada badge */
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-.model-info { font-size: 10px; color: #556080; margin-top: 5px; }
-
-/* Input Area Styling */
-.stTextArea textarea { background-color: rgba(10, 25, 47, 0.6); color: #e6f1ff; border: 1px solid #233554; border-radius: 10px; }
-
-/* Tombol */
-.stButton > button { width: 100%; background: linear-gradient(90deg, #112240, #233554); color: #64ffda; border: 1px solid #64ffda; padding: 12px 0; border-radius: 10px; font-weight: 600; }
+.model-info { display: none; } /* HIDDEN */
 
 </style>
 """
@@ -123,6 +117,13 @@ st.markdown(ui_style, unsafe_allow_html=True)
 # ==========================================
 # 2️⃣ PREPROCESSING & RESOURCE LOADING
 # ==========================================
+try:
+    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
+except:
+    STEMMER = None
+
 @st.cache_data
 def text_preprocessing(text):
     if not isinstance(text, str): return ""
@@ -139,9 +140,7 @@ def text_preprocessing(text):
 @st.cache_resource
 def load_resources():
     try:
-        # FIX: Load Vectorizer ke variabel yang benar
         vectorizer = joblib.load("tfidf_vectorizer.pkl")
-        # FIX: Load 3 MODEL OPTIMASI
         models = {
             "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
             "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
@@ -176,7 +175,7 @@ if analyze_button:
     if input_text.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        # Proses
+        # Proses Prediksi
         clean_text = text_preprocessing(input_text)
         X = VECTORIZER.transform([clean_text])
         
@@ -185,30 +184,24 @@ if analyze_button:
         
         # Styling Hasil
         if prediction.lower() == "positif":
-            badge_bg = "linear-gradient(90deg, #059669, #34d399)" # Hijau
+            badge_bg = "linear-gradient(90deg, #059669, #34d399)"
             icon = "😊"
             label = "POSITIF"
         elif prediction.lower() == "negatif":
-            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)" # Merah
+            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
             icon = "😡"
             label = "NEGATIF"
         else:
-            badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)" # Abu-abu
+            badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
             icon = "😐"
             label = "NETRAL"
 
-        # Tampilkan Kartu Hasil (Minimalis)
+        # Tampilkan Kartu Hasil (Minimalis - Hanya Badge)
         st.markdown(f"""
         <div class="result-container">
-            <div class="result-card" style="padding: 20px 25px; max-width: 400px; margin: auto;">
-                <div class="result-label">HASIL PELABELAN DATA</div>
-                
+            <div class="result-card">
                 <div class="sentiment-badge" style="background: {badge_bg};">
                     {icon} &nbsp; {label}
-                </div>
-                
-                <div class="model-info" style="margin-top: 5px;">
-                    Algoritma yang Digunakan: <b>{model_choice}</b>
                 </div>
             </div>
         </div>

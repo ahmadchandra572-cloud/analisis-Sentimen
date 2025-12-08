@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 1️⃣ FUNGSI & STYLE CSS
+# 1️⃣ FUNGSI BACKGROUND & GAYA (CSS)
 # ==========================================
 def get_base64_of_bin_file(file_path):
     try:
@@ -24,15 +24,17 @@ def get_base64_of_bin_file(file_path):
     except FileNotFoundError:
         return None
 
-# --- LOAD GAMBAR ---
-BG_IMAGE_FILENAME = "gamabr.jpg" # Pastikan nama file di GitHub sama persis!
+# PENTING: Sesuaikan nama ini dengan nama file di GitHub Anda
+# Berdasarkan gambar Anda sebelumnya, nama filenya adalah 'gamabr' (tanpa .jpg)
+BG_IMAGE_FILENAME = "gamabr" 
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 
-# --- DEFINISI CSS ---
-# Kita gunakan logika: Jika gambar ada, pakai gambar. Jika tidak, pakai gradient.
+# --- CSS STYLING ---
+# Menyiapkan background
 if BG_IMAGE_B64:
-    # OPSI A: BACKGROUND GAMBAR (Dengan Overlay Biru Gelap biar teks terbaca)
-    background_css = f"""
+    # Jika gambar ketemu, pakai gambar + overlay biru gelap
+    page_bg_img = f"""
+    <style>
     .stApp {{
         background-image: linear-gradient(rgba(15, 23, 42, 0.80), rgba(15, 23, 42, 0.90)), 
                           url("data:image/jpeg;base64,{BG_IMAGE_B64}");
@@ -41,116 +43,106 @@ if BG_IMAGE_B64:
         background-repeat: no-repeat;
         background-attachment: fixed;
     }}
+    </style>
     """
 else:
-    # OPSI B: GRADIENT CADANGAN (Jika gambar error/hilang)
-    background_css = """
+    # Jika gambar tidak ketemu, pakai warna solid biru gelap
+    page_bg_img = """
+    <style>
     .stApp {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-        background-attachment: fixed;
+        background: linear-gradient(135deg, #0f172a, #1e293b);
     }
+    </style>
     """
 
-# --- INJECT CSS ---
-st.markdown(f"""
+# Menyiapkan Style UI (Kartu, Header, Tombol)
+ui_style = """
 <style>
-    /* Aplikasi Background dari Logika di atas */
-    {background_css}
+/* Container Utama Transparan */
+.block-container {
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 3rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    max-width: 700px;
+}
 
-    /* Styling Container Utama (Kotak Kaca/Glassmorphism) */
-    .block-container {{
-        background-color: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 3rem !important;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        max-width: 700px;
-    }}
+/* Header Text */
+h1 {
+    background: -webkit-linear-gradient(45deg, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 900;
+    text-align: center;
+    padding-bottom: 10px;
+}
 
-    /* Header Styling */
-    h1 {{
-        background: -webkit-linear-gradient(45deg, #00C9FF, #92FE9D);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-family: 'Helvetica', sans-serif;
-        font-weight: 800;
-        text-align: center;
-        padding-bottom: 10px;
-    }}
-    
-    /* Text Color Override */
-    h3, p, label, .stMarkdown {{
-        color: #e0e7ff !important;
-    }}
+h3, p, label, .stMarkdown {
+    color: #e2e8f0 !important;
+}
 
-    /* Input Area Styling */
-    .stTextArea textarea {{
-        background-color: rgba(0, 0, 0, 0.4) !important;
-        color: white !important;
-        border-radius: 12px;
-        border: 1px solid #4b5563;
-    }}
-    .stTextArea textarea:focus {{
-        border: 1px solid #00C9FF;
-        box-shadow: 0 0 10px rgba(0, 201, 255, 0.3);
-    }}
+/* Text Area Input */
+.stTextArea textarea {
+    background-color: rgba(15, 23, 42, 0.6);
+    color: white;
+    border: 1px solid #475569;
+    border-radius: 12px;
+}
 
-    /* Selectbox Styling */
-    .stSelectbox div[data-baseweb="select"] > div {{
-        background-color: rgba(0, 0, 0, 0.4);
-        color: white;
-        border-radius: 10px;
-        border: 1px solid #4b5563;
-    }}
+/* Tombol Analisis */
+.stButton > button {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    height: 50px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+}
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+}
 
-    /* Button Styling */
-    .stButton button {{
-        background: linear-gradient(90deg, #4f46e5, #3b82f6);
-        color: white;
-        border: none;
-        padding: 0.6rem 1.2rem;
-        border-radius: 50px;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        width: 100%;
-    }}
-    .stButton button:hover {{
-        transform: scale(1.05);
-        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
-    }}
+/* Kartu Hasil (Result Card) */
+.result-card {
+    background: rgba(30, 41, 59, 0.7);
+    border-radius: 16px;
+    padding: 25px;
+    margin-top: 25px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.1);
+    animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 
-    /* --- HASIL PREDIKSI (RESULT CARD) --- */
-    .result-card {{
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 25px;
-        margin-top: 30px;
-        text-align: center;
-        border: 1px solid rgba(255,255,255,0.15);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        animation: fadeIn 0.8s ease-out;
-    }}
-    
-    .sentiment-label {{
-        font-size: 28px;
-        font-weight: 800;
-        margin: 15px 0;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        text-shadow: 0px 2px 4px rgba(0,0,0,0.3);
-    }}
+.sentiment-badge {
+    font-size: 28px;
+    font-weight: 800;
+    padding: 12px 30px;
+    border-radius: 50px;
+    display: inline-block;
+    margin: 20px 0;
+    color: white;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
 
-    /* Animasi */
-    @keyframes fadeIn {{
-        from {{ opacity: 0; transform: translateY(10px); }}
-        to {{ opacity: 1; transform: translateY(0); }}
-    }}
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 </style>
-""", unsafe_allow_html=True)
+"""
+
+# Terapkan CSS
+st.markdown(page_bg_img, unsafe_allow_html=True)
+st.markdown(ui_style, unsafe_allow_html=True)
+
 
 # ==========================================
-# 2️⃣ LOGIKA SISTEM (LOAD & PREPROCESS)
+# 2️⃣ LOAD DEPENDENCIES (SASTRAWI & RESOURCES)
 # ==========================================
 try:
     from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
@@ -188,36 +180,35 @@ def load_resources():
 
 VECTORIZER, MODELS = load_resources()
 
-# ==========================================
-# 3️⃣ USER INTERFACE (LAYOUT)
-# ==========================================
 
-# -- Header --
-st.markdown("<h1>📊 ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; opacity: 0.8; margin-bottom: 30px;'>Deteksi Opini Publik tentang Gaji DPR menggunakan Optimasi GAM-GWO</p>", unsafe_allow_html=True)
+# ==========================================
+# 3️⃣ TAMPILAN UTAMA (UI)
+# ==========================================
+st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; opacity: 0.7; margin-top: -15px;'>Deteksi Opini Publik Isu Gaji DPR dengan Optimasi GAM-GWO</p>", unsafe_allow_html=True)
 
 if VECTORIZER is None or MODELS is None:
+    st.warning("⚠️ Sistem sedang memuat model... Jika lama, coba refresh.")
     st.stop()
 
-# -- Form Input --
+# Layout Input
 with st.container():
     col1, col2 = st.columns([1, 2])
     with col1:
-        model_choice = st.selectbox("🤖 Pilih Model", list(MODELS.keys()))
+        model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
     with col2:
-        st.write("") # Spacer agar sejajar
+        st.write("") # Spacer
 
-    input_text = st.text_area("✍️ Masukkan komentar di sini...", height=100, placeholder="Contoh: Kinerja DPR harus ditingkatkan...")
+    input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
 
-    # Tombol Analisis (Tengah)
-    col_l, col_m, col_r = st.columns([1, 2, 1])
+    col_l, col_m, col_r = st.columns([1, 1.5, 1])
     with col_m:
-        analyze_button = st.button("🚀 ANALISIS SEKARANG", use_container_width=True)
+        analyze_button = st.button("🔍 ANALISIS SEKARANG", use_container_width=True)
 
-# -- Hasil Analisis --
+# Logika Hasil
 if analyze_button:
     if input_text.strip() == "":
-        st.warning("⚠️ Harap masukkan teks terlebih dahulu!")
+        st.warning("⚠️ Harap masukkan teks komentar!")
     else:
         # Proses Prediksi
         clean_text = text_preprocessing(input_text)
@@ -225,40 +216,39 @@ if analyze_button:
         model = MODELS[model_choice]
         prediction = model.predict(X)[0]
         
-        # Penentuan Warna & Ikon
+        # Styling Hasil
         if prediction.lower() == "positif":
-            color_css = "background: linear-gradient(90deg, #00b09b, #96c93d); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"
-            icon = "✅"
-            status_text = "POSITIF"
-            box_border = "#96c93d"
+            badge_color = "linear-gradient(135deg, #059669, #34d399)"
+            icon = "😊"
+            label = "POSITIF"
         elif prediction.lower() == "negatif":
-            color_css = "background: linear-gradient(90deg, #ff416c, #ff4b2b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"
-            icon = "❌"
-            status_text = "NEGATIF"
-            box_border = "#ff4b2b"
+            badge_color = "linear-gradient(135deg, #dc2626, #f87171)"
+            icon = "😡"
+            label = "NEGATIF"
         else:
-            color_css = "background: linear-gradient(90deg, #bdc3c7, #2c3e50); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"
+            badge_color = "linear-gradient(135deg, #475569, #94a3b8)"
             icon = "😐"
-            status_text = "NETRAL"
-            box_border = "#bdc3c7"
+            label = "NETRAL"
 
-        # -- MENAMPILKAN CARD HASIL --
+        # Tampilkan Kartu Hasil
         st.markdown(f"""
-        <div class="result-card" style="border-top: 5px solid {box_border};">
-            <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 5px;">Teks Terproses:</p>
-            <div style="font-style: italic; color: #a5b4fc; font-size: 16px; margin-bottom: 20px; font-weight: 500;">
-                "{clean_text}"
+        <div class="result-card">
+            <p style="color:#94a3b8; font-size:14px; letter-spacing:1px; text-transform:uppercase;">Hasil Prediksi</p>
+            
+            <div class="sentiment-badge" style="background: {badge_color};">
+                {icon} &nbsp; {label}
             </div>
             
-            <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 10px 0;"></div>
-            
-            <p style="color: white; font-size: 14px; margin-top: 15px;">Prediksi Sentimen:</p>
-            <div class="sentiment-label">
-                {icon} <span style="{color_css}">{status_text}</span>
+            <div style="background:rgba(0,0,0,0.2); padding:15px; border-radius:10px; text-align:left; margin-top:10px;">
+                <p style="color:#cbd5e1; font-size:12px; margin:0;">Teks Asli:</p>
+                <p style="color:white; font-style:italic; margin:5px 0;">"{input_text}"</p>
+                <hr style="border-color:rgba(255,255,255,0.1);">
+                <p style="color:#cbd5e1; font-size:12px; margin:0;">Teks Bersih (Preprocessed):</p>
+                <p style="color:#60a5fa; font-family:monospace; margin:5px 0;">{clean_text}</p>
             </div>
             
-            <p style="margin-top: 15px; font-size: 11px; color: rgba(255,255,255,0.5);">
-                Dianalisis oleh: <b>{model_choice}</b>
+            <p style="margin-top: 15px; font-size: 11px; opacity: 0.5;">
+                Model: <b>{model_choice}</b>
             </p>
         </div>
         """, unsafe_allow_html=True)

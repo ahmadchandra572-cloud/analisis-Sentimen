@@ -86,7 +86,7 @@ model_choice = st.selectbox("Pilih Algoritma Prediksi:", model_options)
 
 input_text = st.text_area("Masukkan Komentar YouTube di sini:", height=100)
 
-if st.button("Analisis"):
+if st.button("Analisis-Sentimen"):
     if input_text.strip() == "":
         st.warning("Teks tidak boleh kosong!")
         

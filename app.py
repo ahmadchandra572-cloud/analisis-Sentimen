@@ -2,32 +2,35 @@ import streamlit as st
 import joblib
 import re
 import string
-import base64 # <-- TAMBAHAN: Untuk meng-encode gambar
+import base64 # <-- DIBUTUHKAN untuk meng-encode gambar
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory # Jika ini digunakan
+
 
 # ==========================================
 # 0️⃣ BACKGROUND IMAGE ENCODER
 # ==========================================
 def get_base64_of_bin_file(file_path):
-    """Mengubah file gambar menjadi string Base64."""
+    """Membaca file dan mengkonversinya ke string Base64."""
     try:
         with open(file_path, 'rb') as f:
             data = f.read()
         return base64.b64encode(data).decode()
     except FileNotFoundError:
-        return None # Mengembalikan None jika file tidak ditemukan
+        return None
 
-# Asumsi nama file adalah 'gamabr' dan formatnya jpg. Harap dicek di repo!
+# Asumsi nama file adalah 'gamabr'
 BG_IMAGE_FILENAME = "gamabr" 
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME) 
 
 
 # ==========================================
-# BACKGROUND STYLE (MODIFIED TO USE IMAGE)
+# BACKGROUND STYLE (MODIFIED FOR FADE/DARKEN)
 # ==========================================
 if BG_IMAGE_B64:
     # Jika gambar berhasil dimuat, gunakan gambar sebagai background
     BG_STYLE = f"""
     <style>
+    /* Set the actual image */
     .stApp {{
         background-image: url("data:image/jpeg;base64,{BG_IMAGE_B64}");
         background-size: cover;
@@ -35,8 +38,19 @@ if BG_IMAGE_B64:
         background-repeat: no-repeat;
         background-attachment: fixed;
     }}
+    /* Layer Gelap Transparan (MENCIPTAKAN EFEK MEMUDAR & GELAP) */
+    .stApp::after {{
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.65); /* Lapisan hitam 65% transparan */
+        z-index: -1; 
+    }}
     .block-container {{
-        background-color: rgba(17, 24, 39, 0.85); /* Agar teks di konten tetap terbaca */
+        background-color: rgba(17, 24, 39, 0.85); /* Konten lebih gelap */
         padding: 2rem;
         border-radius: 16px;
     }}
@@ -46,7 +60,7 @@ if BG_IMAGE_B64:
     </style>
     """
 else:
-    # Jika gambar gagal dimuat, kembali ke background gradient default Anda
+    # Fallback ke background gradient default jika gambar tidak ditemukan
     BG_STYLE = """
     <style>
     .stApp {
@@ -79,7 +93,6 @@ except:
 # PREPROCESSING FUNCTION
 # ==========================================
 @st.cache_data
-# ... (lanjutkan fungsi text_preprocessing) ...
 def text_preprocessing(text):
     if not isinstance(text, str):
         return ""

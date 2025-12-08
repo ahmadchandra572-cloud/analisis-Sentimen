@@ -2,18 +2,28 @@ import streamlit as st
 import joblib
 import re
 import string
+import base64
 
 # ==========================================
-# BACKGROUND STYLE
+# LOAD BACKGROUND IMAGE
 # ==========================================
-st.markdown("""
+def get_base64_of_bin_file(file_path):
+    with open(file_path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+bg_img = get_base64_of_bin_file("gamabr.jpg")
+
+# ==========================================
+# BACKGROUND STYLE + SIDE IMAGE
+# ==========================================
+st.markdown(f"""
 <style>
-.stApp {
+.stApp {{
     background: linear-gradient(135deg, #1f2937, #111827);
     background-attachment: fixed;
-}
+}}
 
-.stApp::before {
+.stApp::before {{
     content: "";
     position: fixed;
     top: 0;
@@ -28,32 +38,40 @@ st.markdown("""
         transparent 40px
     );
     z-index: -1;
-}
+}}
 
-.block-container {
+.block-container {{
     background-color: rgba(17, 24, 39, 0.85);
     padding: 2rem;
     border-radius: 16px;
-}
+    max-width: 800px;
+}}
 
-h1, h2, h3, label, p {
-    color: #e5e7eb !important;
-}
+.side-image {{
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 200px;
+    opacity: 0.15;
+    z-index: -1;
+}}
 </style>
+
+<img class="side-image" src="data:image/jpg;base64,{bg_img}">
+
 """, unsafe_allow_html=True)
 
 # ==========================================
 # STEMMER
 # ==========================================
 try:
-    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
-    FACTORY = StemmerFactory()
-    STEMMER = FACTORY.create_stemmer()
+    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+    STEMMER = StemmerFactory().create_stemmer()
 except:
     STEMMER = None
 
 # ==========================================
-# PREPROCESSING FUNCTION
+# PREPROCESSING
 # ==========================================
 @st.cache_data
 def text_preprocessing(text):
@@ -73,13 +91,12 @@ def text_preprocessing(text):
     return text.strip()
 
 # ==========================================
-# LOAD MODEL DAN VECTORIZER
+# LOAD MODELS
 # ==========================================
 @st.cache_resource
 def load_resources():
     try:
         vectorizer = joblib.load("tfidf_vectorizer.pkl")
-
         models = {
             "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
             "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),

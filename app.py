@@ -4,7 +4,46 @@ import re
 import string
 
 # ==========================================
-# STEMMER (Sastrawi)
+# BACKGROUND STYLE
+# ==========================================
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(135deg, #1f2937, #111827);
+    background-attachment: fixed;
+}
+
+.stApp::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,0.03),
+        rgba(255,255,255,0.03) 2px,
+        transparent 2px,
+        transparent 40px
+    );
+    z-index: -1;
+}
+
+.block-container {
+    background-color: rgba(17, 24, 39, 0.85);
+    padding: 2rem;
+    border-radius: 16px;
+}
+
+h1, h2, h3, label, p {
+    color: #e5e7eb !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# STEMMER
 # ==========================================
 try:
     from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
@@ -34,12 +73,13 @@ def text_preprocessing(text):
     return text.strip()
 
 # ==========================================
-# LOAD MODEL & VECTORIZER
+# LOAD MODEL DAN VECTORIZER
 # ==========================================
 @st.cache_resource
 def load_resources():
     try:
         vectorizer = joblib.load("tfidf_vectorizer.pkl")
+
         models = {
             "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
             "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
@@ -47,7 +87,7 @@ def load_resources():
         }
         return vectorizer, models
     except Exception as e:
-        st.error(f"Gagal load model atau vectorizer: {e}")
+        st.error(f"Gagal load file: {e}")
         return None, None
 
 VECTORIZER, MODELS = load_resources()
@@ -61,19 +101,19 @@ st.subheader("Text Sentiment Analysis App")
 if VECTORIZER is None or MODELS is None:
     st.stop()
 
-model_choice = st.selectbox("Choose Model:", list(MODELS.keys()))
-input_text = st.text_area("Enter text:", height=120)
+model_choice = st.selectbox("Choose Model", list(MODELS.keys()))
+input_text = st.text_area("Enter text here", height=120)
 
 if st.button("Analyze Sentiment"):
     if input_text.strip() == "":
         st.warning("Text cannot be empty!")
     else:
-        cleaned_text = text_preprocessing(input_text)
-        X = VECTORIZER.transform([cleaned_text])
+        clean_text = text_preprocessing(input_text)
+        X = VECTORIZER.transform([clean_text])
         model = MODELS[model_choice]
         prediction = model.predict(X)[0]
 
-        st.info(f"Cleaned Text: {cleaned_text}")
+        st.info(f"Cleaned Text: {clean_text}")
 
         if prediction.lower() == "positif":
             st.success("Sentiment: POSITIVE ✅")

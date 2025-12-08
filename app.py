@@ -3,7 +3,7 @@ import joblib
 import re
 import string
 import base64
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory # Jika ini digunakan
 
 
 # ==========================================
@@ -32,18 +32,17 @@ BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 # ==========================================
 # --- Background Image + Overlay ---
 if BG_IMAGE_B64:
-    # Menggunakan background-image yang kompleks: Image + 2 Layers of Gradient
+    # Layering untuk efek menyatu/pecahan dan background lebih jelas (opacity 0.70)
     background_css = f"""
     <style>
-    /* Layer 1: Base Image */
     .stApp {{
         background-image: 
-            /* Layer 2 (Pudarnya Biru Dongker) */
-            linear-gradient(rgba(10, 25, 47, 0.90), rgba(10, 25, 47, 0.95)), 
-            /* Layer 3 (Pola Grid Halus untuk kesan 'pecahan') */
+            /* Layer 2: Overlay Biru Dongker (Lebih Jelas: 70%) */
+            linear-gradient(rgba(10, 25, 47, 0.70), rgba(10, 25, 47, 0.85)), 
+            /* Layer 3: Pola Grid Halus (Menggandakan dan Menghapus Garis) */
             repeating-linear-gradient(
                 45deg,
-                rgba(100, 255, 218, 0.02), /* Biru Neon Sangat Transparan */
+                rgba(100, 255, 218, 0.02),
                 rgba(100, 255, 218, 0.02) 2px,
                 transparent 2px,
                 transparent 40px
@@ -59,7 +58,6 @@ if BG_IMAGE_B64:
     </style>
     """
 else:
-    # Fallback (Tetap memiliki tekstur biru gelap)
     background_css = """
     <style>
     .stApp {
@@ -77,13 +75,13 @@ ui_style = """
 
 html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6; }
 
-/* Container Utama (Glassmorphism) */
+/* Container Utama (LEBIH MEMUDAR/TRANSPARAN) */
 .block-container {
-    background-color: rgba(17, 34, 64, 0.4); 
-    backdrop-filter: blur(8px);
+    background-color: rgba(17, 34, 64, 0.2); /* Opacity lebih rendah */
+    backdrop-filter: blur(12px); /* Blur sedikit dinaikkan */
     border-radius: 20px;
     padding: 3rem 2rem !important;
-    border: 1px solid rgba(100, 255, 218, 0.1); 
+    border: 1px solid rgba(100, 255, 218, 0.08); /* Border tipis */
     max-width: 680px;
 }
 
@@ -97,11 +95,10 @@ h1 {
     letter-spacing: 1px;
 }
 
-.result-container { display: flex; justify-content: center; margin-top: 30px; }
-
+/* Kartu Hasil Sederhana (LEBIH MEMUDAR/TRANSPARAN) */
 .result-card {
-    background: rgba(17, 34, 64, 0.5); 
-    backdrop-filter: blur(10px); 
+    background: rgba(17, 34, 64, 0.3); /* Opacity dikurangi */
+    backdrop-filter: blur(12px); 
     border-radius: 16px;
     padding: 20px 25px; 
     width: 100%;
@@ -119,6 +116,13 @@ h1 {
     color: white; 
     margin: 10px 0;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.stButton > button {
+    background: linear-gradient(90deg, #112240, #233554); 
+    color: #64ffda; 
+    border: 1px solid #64ffda;
+    /* ... (gaya tombol lainnya) ... */
 }
 </style>
 """

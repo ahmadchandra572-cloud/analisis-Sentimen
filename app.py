@@ -1,306 +1,154 @@
-import streamlit as st
-import joblib
-import re
-import string
-import base64
+import warnings
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+import numpy as np
+import random
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# ==========================================
-# 0️⃣ KONFIGURASI HALAMAN
-# ==========================================
-st.set_page_config(
-    page_title="Analisis Sentimen DPR",
-    page_icon="🤖",
-    layout="centered"
-)
-
-# ==========================================
-# 1️⃣ FUNGSI BACKGROUND & GAYA (CSS DARK NAVY)
-# ==========================================
-def get_base64_of_bin_file(file_path):
-    try:
-        with open(file_path, 'rb') as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    except FileNotFoundError:
-        return None
-
-# Nama file gambar (pastikan ada di repo)
-BG_IMAGE_FILENAME = "gamabr" 
-BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
-
-# --- WARNA TEMA: BIRU DONGKER (DARK NAVY) ---
-# Kode warna: #0a192f (Deep Navy) sampai #112240 (Light Navy)
-
-if BG_IMAGE_B64:
-    # Gambar dengan overlay Biru Dongker Gelap
-    background_css = f"""
-    <style>
-    .stApp {{
-        background-image: linear-gradient(rgba(10, 25, 47, 0.90), rgba(10, 25, 47, 0.95)), 
-                          url("data:image/jpeg;base64,{BG_IMAGE_B64}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }}
-    </style>
-    """
-else:
-    # Fallback warna solid Biru Dongker jika gambar tidak ada
-    background_css = """
-    <style>
-    .stApp {
-        background: radial-gradient(circle at center, #112240 0%, #0a192f 100%);
-    }
-    </style>
-    """
-
-ui_style = """
-<style>
-/* Import Font */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-
-html, body, [class*="css"] {
-    font-family: 'Poppins', sans-serif;
-    color: #ccd6f6;
-}
-
-/* Container Utama: Glassmorphism (Transparan Pudar) */
-.block-container {
-    background-color: rgba(17, 34, 64, 0.4); /* Biru dongker sangat transparan */
-    backdrop-filter: blur(8px); /* Efek kaca buram */
-    border-radius: 20px;
-    padding: 3rem 2rem !important;
-    border: 1px solid rgba(100, 255, 218, 0.1); /* Border tipis neon */
-    box-shadow: 0 10px 30px -10px rgba(2, 12, 27, 0.7);
-    max-width: 680px;
-}
-
-/* Header */
-h1 {
-    color: #e6f1ff;
-    font-weight: 700;
-    text-align: center;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    margin-bottom: 5px;
-}
-
-.subtitle {
-    text-align: center;
-    color: #8892b0;
-    font-size: 13px;
-    margin-bottom: 25px;
-    font-weight: 300;
-}
-
-/* Input Area (Textarea) */
-.stTextArea textarea {
-    background-color: rgba(10, 25, 47, 0.6); /* Gelap transparan */
-    color: #e6f1ff;
-    border: 1px solid #233554;
-    border-radius: 10px;
-}
-.stTextArea textarea:focus {
-    border-color: #64ffda; /* Hijau neon khas coding */
-    box-shadow: 0 0 10px rgba(100, 255, 218, 0.1);
-}
-
-/* Selectbox */
-.stSelectbox div[data-baseweb="select"] > div {
-    background-color: rgba(10, 25, 47, 0.6);
-    color: white;
-    border: 1px solid #233554;
-    border-radius: 10px;
-}
-
-/* Tombol Analisis */
-.stButton > button {
-    width: 100%;
-    background: linear-gradient(90deg, #112240, #233554);
-    color: #64ffda; /* Teks Neon */
-    border: 1px solid #64ffda;
-    padding: 12px 0;
-    border-radius: 10px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    transition: 0.3s;
-    margin-top: 15px;
-}
-.stButton > button:hover {
-    background: rgba(100, 255, 218, 0.1);
-    border-color: #64ffda;
-    transform: translateY(-2px);
-    color: white;
-}
-
-/* --- KARTU HASIL (PUDAR & MENYATU) --- */
-.result-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 30px;
-}
-
-.result-card {
-    background: rgba(17, 34, 64, 0.5); /* Sangat transparan (Pudar) */
-    backdrop-filter: blur(10px); /* Blur kuat */
-    border-radius: 16px;
-    padding: 25px;
-    width: 100%;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 10px 30px -15px rgba(2, 12, 27, 0.7);
-    animation: fadeIn 0.8s ease-out;
-}
-
-.result-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: #8892b0;
-    margin-bottom: 15px;
-}
-
-.sentiment-badge {
-    display: inline-block;
-    padding: 10px 40px;
-    border-radius: 50px;
-    font-size: 22px;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.1);
-}
-
-.clean-text-box {
-    background: rgba(2, 12, 27, 0.4);
-    padding: 15px;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #a8b2d1;
-    font-family: 'Courier New', monospace;
-    margin-bottom: 10px;
-    border-left: 2px solid #64ffda;
-}
-
-.model-info {
-    font-size: 10px;
-    color: #556080;
-    margin-top: 15px;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-</style>
-"""
-
-st.markdown(background_css, unsafe_allow_html=True)
-st.markdown(ui_style, unsafe_allow_html=True)
+# ====================================================================
+# --- ASUMSI DATA ---
+# Script ini mengasumsikan variabel X_train, y_train, X_test, dan y_test 
+# sudah didefinisikan dari tahap TF-IDF dan data splitting sebelumnya.
+# ====================================================================
 
 
-# ==========================================
-# 2️⃣ LOAD DEPENDENCIES
-# ==========================================
-try:
-    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
-    FACTORY = StemmerFactory()
-    STEMMER = FACTORY.create_stemmer()
-except:
-    STEMMER = None
-
-@st.cache_data
-def text_preprocessing(text):
-    if not isinstance(text, str): return ""
-    text = text.lower()
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
-    text = re.sub(r'@\w+', '', text)
-    text = re.sub(r'\d+', '', text)
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    text = text.encode('ascii', 'ignore').decode('ascii')
-    if STEMMER:
-        text = STEMMER.stem(text)
-    return text.strip()
-
-@st.cache_resource
-def load_resources():
-    try:
-        vectorizer = joblib.load("tfidf_vectorizer.pkl")
-        models = {
-            "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
-            "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
-            "SVM": joblib.load("model_SVM_GamGwo.pkl")
-        }
-        return vectorizer, models
-    except Exception as e:
-        st.error(f"Gagal memuat sistem: {e}")
-        return None, None
-
-VECTORIZER, MODELS = load_resources()
+# -----------------------------
+# 1️⃣ FITNESS FUNCTION LOGISTIC REGRESSION (LR)
+# -----------------------------
+def fitness_lr(params):
+    C = params[0]
+    C = max(C, 0.01)
+    
+    # Gunakan solver lbfgs yang stabil untuk multi-class
+    model = LogisticRegression(C=C, max_iter=1000, solver='lbfgs', multi_class='auto')
+    
+    # Menekan FutureWarning saat cross_val_score berjalan
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        score = cross_val_score(model, X_train, y_train, cv=3, scoring='accuracy', error_score='raise')
+    
+    return np.mean(score)
 
 
-# ==========================================
-# 3️⃣ TAMPILAN UTAMA (UI)
-# ==========================================
-st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
-st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
+# -----------------------------
+# 2️⃣ GA FUNCTIONS (Genetic Algorithm)
+# -----------------------------
+def ga_initial_population(pop_size, search_space):
+    return np.array([[random.uniform(search_space[j][0], search_space[j][1]) for j in range(len(search_space))]
+                     for _ in range(pop_size)])
 
-if VECTORIZER is None or MODELS is None:
-    st.error("⚠️ Sistem gagal dimuat.")
-    st.stop()
+def ga_crossover(p1, p2):
+    return (p1 + p2) / 2
 
-# Layout Input
-with st.container():
-    model_choice = st.selectbox("Pilih Algoritma", list(MODELS.keys()))
-    input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
-    analyze_button = st.button("ANALISIS SEKARANG")
+def ga_mutate(ind):
+    return ind + np.random.normal(0, 0.1, size=len(ind))
 
-# Logika Hasil
-if analyze_button:
-    if input_text.strip() == "":
-        st.warning("⚠️ Harap masukkan teks komentar!")
-    else:
-        # Proses
-        clean_text = text_preprocessing(input_text)
-        X = VECTORIZER.transform([clean_text])
-        model = MODELS[model_choice]
-        prediction = model.predict(X)[0]
-        
-        # Warna Badge (Tetap elegan tapi mencolok di background gelap)
-        if prediction.lower() == "positif":
-            badge_bg = "linear-gradient(90deg, #064e3b, #10b981)" # Hijau gelap ke terang
-            icon = "😊"
-            label = "POSITIF"
-        elif prediction.lower() == "negatif":
-            badge_bg = "linear-gradient(90deg, #7f1d1d, #ef4444)" # Merah gelap ke terang
-            icon = "😡"
-            label = "NEGATIF"
-        else:
-            badge_bg = "linear-gradient(90deg, #1e293b, #475569)" # Abu-abu
-            icon = "😐"
-            label = "NETRAL"
+def run_ga(fitness_func, pop_size, generations, search_space):
+    population = ga_initial_population(pop_size, search_space)
+    for g in range(generations):
+        fitness = np.array([fitness_func(ind) for ind in population])
+        sorted_idx = np.argsort(fitness)[::-1]
+        population = population[sorted_idx]
+        best = population[0]
+        new_pop = [best]
+        while len(new_pop) < pop_size:
+            parents = population[np.random.choice(range(5), 2, replace=False)]
+            child = ga_crossover(parents[0], parents[1])
+            child = ga_mutate(child)
+            child = np.clip(child, [s[0] for s in search_space], [s[1] for s in search_space])
+            new_pop.append(child)
+        population = np.array(new_pop)
+    return population[0], fitness_func(population[0])
 
-        # Tampilkan Kartu Hasil (Tengah & Pudar)
-        st.markdown(f"""
-        <div class="result-container">
-            <div class="result-card">
-                <div class="result-label">HASIL PREDIKSI</div>
-                
-                <div class="sentiment-badge" style="background: {badge_bg};">
-                    {icon} &nbsp; {label}
-                </div>
-                
-                <div style="text-align: left; margin-bottom: 5px; font-size: 11px; color: #8892b0; margin-left: 5px;">
-                    Teks Bersih:
-                </div>
-                <div class="clean-text-box">
-                    {clean_text}
-                </div>
-                
-                <div class="model-info">
-                    Algoritma: <b>{model_choice}</b>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+
+# -----------------------------
+# 3️⃣ GWO FUNCTION (Grey Wolf Optimization)
+# -----------------------------
+def gwo_optimize(fitness_func, dim, search_space, init_pos, wolves=10, iterations=10):
+    alpha, beta, delta = np.zeros(dim), np.zeros(dim), np.zeros(dim)
+    alpha_score, beta_score, delta_score = -1, -1, -1
+    positions = np.array([init_pos + np.random.uniform(-0.1,0.1,dim) for _ in range(wolves)])
+
+    for t in range(iterations):
+        a = 2 - t*(2/iterations)
+        for i in range(wolves):
+            score = fitness_func(positions[i])
+            if score > alpha_score:
+                delta_score, beta_score, alpha_score = beta_score, alpha_score, score
+                delta, beta, alpha = np.copy(beta), np.copy(alpha), np.copy(positions[i])
+            elif score > beta_score:
+                delta_score, beta_score = beta_score, score
+                delta, beta = np.copy(beta), np.copy(positions[i])
+            elif score > delta_score:
+                delta_score = score
+                delta = np.copy(positions[i])
+        for i in range(wolves):
+            for j in range(dim):
+                r1,r2 = random.random(), random.random()
+                A1, C1 = 2*a*r1 - a, 2*r2
+                D_alpha = abs(C1*alpha[j] - positions[i][j])
+                X1 = alpha[j] - A1*D_alpha
+
+                r1,r2 = random.random(), random.random()
+                A2, C2 = 2*a*r1 - a, 2*r2
+                D_beta = abs(C2*beta[j] - positions[i][j])
+                X2 = beta[j] - A2*D_beta
+
+                r1,r2 = random.random(), random.random()
+                A3, C3 = 2*a*r1 - a, 2*r2
+                D_delta = abs(C3*delta[j] - positions[i][j])
+                X3 = delta[j] - A3*D_delta
+
+                positions[i][j] = (X1+X2+X3)/3
+            positions[i] = np.clip(positions[i],[s[0] for s in search_space],[s[1] for s in search_space])
+    return alpha, alpha_score
+
+
+# ====================================================================
+# 4️⃣ EXECUTION BLOCK: OPTIMASI DAN EVALUASI
+# ====================================================================
+
+# Konfigurasi Search Space: Hanya C (regularisasi)
+lr_search_space = [[0.01, 100]]
+
+# Run GA (menghasilkan posisi awal yang baik untuk GWO)
+best_lr_ga, score_lr_ga = run_ga(fitness_lr, pop_size=10, generations=5, search_space=lr_search_space)
+
+# Run GWO (melakukan optimasi halus)
+best_lr_gwo, score_lr_gwo = gwo_optimize(fitness_lr, dim=1, search_space=lr_search_space, init_pos=best_lr_ga, wolves=5, iterations=5)
+
+print("=== Hasil GAM-GWO Logistic Regression ===")
+print(f"Best Params C: {best_lr_gwo[0]:.4f}")
+print(f"Best Cross-Validation Score: {score_lr_gwo:.4f}")
+
+# -----------------------------
+# 5️⃣ Training Final Model
+# -----------------------------
+# Menekan FutureWarning saat training model final
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=FutureWarning)
+    best_lr_model = LogisticRegression(C=best_lr_gwo[0], max_iter=1000, solver='lbfgs', multi_class='auto')
+    best_lr_model.fit(X_train, y_train)
+
+y_pred_lr = best_lr_model.predict(X_test)
+
+# -----------------------------
+# 6️⃣ Evaluasi dan Visualisasi
+# -----------------------------
+acc_lr = accuracy_score(y_test, y_pred_lr) * 100
+print("\n--- Evaluasi Final ---")
+print(f"Akurasi LR (GAM-GWO): {acc_lr:.2f}%")
+print("Classification Report:")
+print(classification_report(y_test, y_pred_lr, zero_division=0))
+
+
+# Visualisasi Confusion Matrix
+plt.figure(figsize=(6,5))
+sns.heatmap(confusion_matrix(y_test, y_pred_lr), annot=True, fmt="d", cmap="Blues",
+            xticklabels=best_lr_model.classes_, yticklabels=best_lr_model.classes_)
+plt.title("Confusion Matrix - LR (GAM-GWO)")
+plt.xlabel("Predicted Labels")
+plt.ylabel("True Labels")
+plt.show()

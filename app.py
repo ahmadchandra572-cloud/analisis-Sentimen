@@ -3,7 +3,7 @@ import joblib
 import re
 import string
 import base64
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory # Jika ini digunakan
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
 
 
 # ==========================================
@@ -23,33 +23,29 @@ def get_base64_of_bin_file(file_path):
     except FileNotFoundError:
         return None
 
+# Gambar Utama (Background)
 BG_IMAGE_FILENAME = "gamabr" 
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 
+# Gambar Tambahan (Sisi Kiri)
+EXTRA_IMAGE_FILENAME = "images.jpg"
+EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
+
 
 # ==========================================
-# 1️⃣ CSS STYLE INJECTION (Multi-Layered Texture & Seamless)
+# 1️⃣ CSS STYLE INJECTION
 # ==========================================
 # --- Background Image + Overlay ---
 if BG_IMAGE_B64:
-    # Layering untuk efek menyatu/pecahan dan background lebih jelas (opacity 0.70)
     background_css = f"""
     <style>
     .stApp {{
         background-image: 
-            /* Layer 2: Overlay Biru Dongker (Lebih Jelas: 70%) */
-            linear-gradient(rgba(10, 25, 47, 0.70), rgba(10, 25, 47, 0.85)), 
-            /* Layer 3: Pola Grid Halus (Menggandakan dan Menghapus Garis) */
+            linear-gradient(rgba(10, 25, 47, 0.40), rgba(10, 25, 47, 0.60)), 
             repeating-linear-gradient(
-                45deg,
-                rgba(100, 255, 218, 0.02),
-                rgba(100, 255, 218, 0.02) 2px,
-                transparent 2px,
-                transparent 40px
+                45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px
             ),
-            /* Base Image */
             url("data:image/jpeg;base64,{BG_IMAGE_B64}");
-            
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -61,28 +57,27 @@ else:
     background_css = """
     <style>
     .stApp {
-        background-image: 
-            repeating-linear-gradient(45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px),
+        background-image: repeating-linear-gradient(45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px),
             radial-gradient(circle at center, #112240 0%, #0a192f 100%);
     }
     </style>
     """
 
-# --- UI Styling (Fokus pada Badge) ---
+# --- UI Styling (Tambahan CSS untuk Image Kiri) ---
 ui_style = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
 html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6; }
 
-/* Container Utama (LEBIH MEMUDAR/TRANSPARAN) */
+/* Container Utama Glassmorphism */
 .block-container {
-    background-color: rgba(17, 34, 64, 0.2); /* Opacity lebih rendah */
-    backdrop-filter: blur(12px); /* Blur sedikit dinaikkan */
+    background-color: rgba(17, 34, 64, 0.2); 
+    backdrop-filter: blur(12px);
     border-radius: 20px;
     padding: 3rem 2rem !important;
-    border: 1px solid rgba(100, 255, 218, 0.08); /* Border tipis */
-    max-width: 680px;
+    border: 1px solid rgba(100, 255, 218, 0.08); 
+    max-width: 900px; /* Melebarkan sedikit untuk kolom gambar */
 }
 
 h1 {
@@ -95,35 +90,20 @@ h1 {
     letter-spacing: 1px;
 }
 
-/* Kartu Hasil Sederhana (LEBIH MEMUDAR/TRANSPARAN) */
-.result-card {
-    background: rgba(17, 34, 64, 0.3); /* Opacity dikurangi */
-    backdrop-filter: blur(12px); 
-    border-radius: 16px;
-    padding: 20px 25px; 
-    width: 100%;
-    max-width: 400px; 
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+/* Gambar Kiri */
+.image-left-style {
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 15px;
+    border: 3px solid #64ffda; /* Garis neon */
+    box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
 }
 
-.sentiment-badge { 
-    font-size: 28px; 
-    font-weight: 700; 
-    padding: 15px 40px; 
-    border-radius: 50px; 
-    display: inline-block; 
-    color: white; 
-    margin: 10px 0;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
+/* Badge Hasil */
+.sentiment-badge { font-size: 28px; font-weight: 700; padding: 15px 40px; border-radius: 50px; display: inline-block; color: white; margin: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+.result-container { display: flex; justify-content: center; margin-top: 30px; }
+.result-card { background: rgba(17, 34, 64, 0.5); backdrop-filter: blur(10px); border-radius: 16px; padding: 20px 25px; width: 100%; max-width: 400px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); }
 
-.stButton > button {
-    background: linear-gradient(90deg, #112240, #233554); 
-    color: #64ffda; 
-    border: 1px solid #64ffda;
-    /* ... (gaya tombol lainnya) ... */
-}
 </style>
 """
 
@@ -181,11 +161,24 @@ if VECTORIZER is None or MODELS is None:
     st.error("⚠️ Sistem gagal dimuat.")
     st.stop()
 
-# Layout Input
+# Layout Input (Menggunakan kolom untuk membagi layar)
 with st.container():
-    model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
-    input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
-    analyze_button = st.button("🔍 ANALISIS SEKARANG")
+    # 5:4 ratio -> approx 40% : 60% split
+    col_img, col_input = st.columns([1, 2]) 
+    
+    with col_img:
+        if EXTRA_IMAGE_B64:
+             # Menampilkan gambar tambahan di kolom kiri
+             st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
+             st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
+             st.markdown('</div>', unsafe_allow_html=True)
+        else:
+             st.info("Gambar tambahan (images.jpg) tidak ditemukan.")
+
+    with col_input:
+        model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
+        input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
+        analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
 # Logika Hasil
 if analyze_button:

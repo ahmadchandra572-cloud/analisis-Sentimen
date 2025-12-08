@@ -2,112 +2,122 @@ import streamlit as st
 import joblib
 import re
 import string
-import base64
 
-# ===============================
-# BACKGROUND IMAGE
-# ===============================
-def get_base64_of_bin_file(file_path):
-    with open(file_path, "rb") as f:
-        return base64.b64encode(f.read()).decode()
+# ==========================================
+# BACKGROUND STYLE
+# ==========================================
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(135deg, #1f2937, #111827);
+    background-attachment: fixed;
+}
 
-bg_image = get_base64_of_bin_file("gamabr.jpg")
+.stApp::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    background-image: repeating-linear-gradient(
+        45deg,
+        rgba(255,255,255,0.03),
+        rgba(255,255,255,0.03) 2px,
+        transparent 2px,
+        transparent 40px
+    );
+    z-index: -1;
+}
 
-st.markdown(
-    f"""
-    <style>
-    .stApp {{
-        background-image: url("data:image/jpg;base64,{bg_image}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-    }}
+.block-container {
+    background-color: rgba(17, 24, 39, 0.85);
+    padding: 2rem;
+    border-radius: 16px;
+}
 
-    h1, h2, h3, p, label {{
-        color: white !important;
-    }}
+h1, h2, h3, label, p {
+    color: #e5e7eb !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
-    .stTextArea textarea {{
-        background-color: rgba(0,0,0,0.6);
-        color: white;
-    }}
-
-    .stSelectbox div {{
-        background-color: rgba(0,0,0,0.6);
-        color: white;
-    }}
-
-    .stButton button {{
-        background-color: #2c7be5;
-        color: white;
-        border-radius: 10px;
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# ===============================
-# STEMMER (SASTRAWI)
-# ===============================
+# ==========================================
+# STEMMER
+# ==========================================
 try:
-    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-    STEMMER = StemmerFactory().create_stemmer()
+    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
 except:
     STEMMER = None
 
-# ===============================
-# PREPROCESSING
-# ===============================
+# ==========================================
+# PREPROCESSING FUNCTION
+# ==========================================
+@st.cache_data
 def text_preprocessing(text):
+    if not isinstance(text, str):
+        return ""
+
     text = text.lower()
-    text = re.sub(r"http\S+|www\S+|https\S+", "", text)
-    text = re.sub(r"@\w+", "", text)
-    text = re.sub(r"\d+", "", text)
-    text = text.translate(str.maketrans("", "", string.punctuation))
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
+    text = re.sub(r'@\w+', '', text)
+    text = re.sub(r'\d+', '', text)
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    text = text.encode('ascii', 'ignore').decode('ascii')
 
     if STEMMER:
         text = STEMMER.stem(text)
 
     return text.strip()
 
-# ===============================
-# LOAD MODEL
-# ===============================
+# ==========================================
+# LOAD MODEL DAN VECTORIZER
+# ==========================================
 @st.cache_resource
-def load_models():
-    vectorizer = joblib.load("tfidf_vectorizer.pkl")
-    models = {
-        "Random Forest (RF)": joblib.load("model_RF_GamGwo.pkl"),
-        "Logistic Regression (LR)": joblib.load("model_LR_GamGwo.pkl"),
-        "Support Vector Machine (SVM)": joblib.load("model_SVM_GamGwo.pkl"),
-    }
-    return vectorizer, models
+def load_resources():
+    try:
+        vectorizer = joblib.load("tfidf_vectorizer.pkl")
 
-vectorizer, models = load_models()
+        models = {
+            "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
+            "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
+            "SVM": joblib.load("model_SVM_GamGwo.pkl")
+        }
+        return vectorizer, models
+    except Exception as e:
+        st.error(f"Gagal load file: {e}")
+        return None, None
 
-# ===============================
+VECTORIZER, MODELS = load_resources()
+
+# ==========================================
 # UI
-# ===============================
+# ==========================================
 st.title("Sentiment Analyzer")
-st.subheader("Using RF, LR & SVM Models")
+st.subheader("Text Sentiment Analysis App")
 
-model_choice = st.selectbox("Choose Model:", list(models.keys()))
-input_text = st.text_area("Enter text:")
+if VECTORIZER is None or MODELS is None:
+    st.stop()
+
+model_choice = st.selectbox("Choose Model", list(MODELS.keys()))
+input_text = st.text_area("Enter text here", height=120)
 
 if st.button("Analyze Sentiment"):
     if input_text.strip() == "":
         st.warning("Text cannot be empty!")
     else:
         clean_text = text_preprocessing(input_text)
-        X = vectorizer.transform([clean_text])
-        prediction = models[model_choice].predict(X)[0]
+        X = VECTORIZER.transform([clean_text])
+        model = MODELS[model_choice]
+        prediction = model.predict(X)[0]
 
-        st.info(f"Processed Text: {clean_text}")
+        st.info(f"Cleaned Text: {clean_text}")
 
         if prediction.lower() == "positif":
-            st.success("Result: POSITIVE ✅")
+            st.success("Sentiment: POSITIVE ✅")
         elif prediction.lower() == "negatif":
-            st.error("Result: NEGATIVE ❌")
+            st.error("Sentiment: NEGATIVE ❌")
         else:
-            st.warning("Result: NEUTRAL ⚖️")
+            st.warning("Sentiment: NEUTRAL ⚪")

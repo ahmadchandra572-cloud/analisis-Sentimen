@@ -4,9 +4,9 @@ import re
 import string
 import base64
 
-# ==========================================
-# BACKGROUND IMAGE SETUP
-# ==========================================
+# ===============================
+# BACKGROUND IMAGE
+# ===============================
 def get_base64_of_bin_file(file_path):
     with open(file_path, "rb") as f:
         return base64.b64encode(f.read()).decode()
@@ -38,7 +38,7 @@ st.markdown(
     }}
 
     .stButton button {{
-        background-color: #1f77b4;
+        background-color: #2c7be5;
         color: white;
         border-radius: 10px;
     }}
@@ -47,80 +47,67 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ==========================================
-# SASTRAWI (STEMMING)
-# ==========================================
+# ===============================
+# STEMMER (SASTRAWI)
+# ===============================
 try:
     from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-    FACTORY = StemmerFactory()
-    STEMMER = FACTORY.create_stemmer()
+    STEMMER = StemmerFactory().create_stemmer()
 except:
     STEMMER = None
 
-# ==========================================
+# ===============================
 # PREPROCESSING
-# ==========================================
-@st.cache_data
+# ===============================
 def text_preprocessing(text):
-    if not isinstance(text, str):
-        return ""
-
     text = text.lower()
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
-    text = re.sub(r'@\w+', '', text)
-    text = re.sub(r'\d+', '', text)
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    text = text.encode('ascii', 'ignore').decode('ascii')
+    text = re.sub(r"http\S+|www\S+|https\S+", "", text)
+    text = re.sub(r"@\w+", "", text)
+    text = re.sub(r"\d+", "", text)
+    text = text.translate(str.maketrans("", "", string.punctuation))
 
     if STEMMER:
         text = STEMMER.stem(text)
 
     return text.strip()
 
-# ==========================================
-# LOAD MODEL & VECTORIZER
-# ==========================================
+# ===============================
+# LOAD MODEL
+# ===============================
 @st.cache_resource
-def load_resources():
-    try:
-        vectorizer = joblib.load("tfidf_vectorizer.pkl")
-        models = {
-            "Random Forest (RF)": joblib.load("model_RF_GamGwo.pkl"),
-            "Logistic Regression (LR)": joblib.load("model_LR_GamGwo.pkl"),
-            "Support Vector Machine (SVM)": joblib.load("model_SVM_GamGwo.pkl"),
-        }
-        return vectorizer, models
-    except Exception as e:
-        st.error(f"Gagal memuat file model: {e}")
-        return None, None
+def load_models():
+    vectorizer = joblib.load("tfidf_vectorizer.pkl")
+    models = {
+        "Random Forest (RF)": joblib.load("model_RF_GamGwo.pkl"),
+        "Logistic Regression (LR)": joblib.load("model_LR_GamGwo.pkl"),
+        "Support Vector Machine (SVM)": joblib.load("model_SVM_GamGwo.pkl"),
+    }
+    return vectorizer, models
 
-VECTORIZER, MODELS = load_resources()
+vectorizer, models = load_models()
 
-# ==========================================
-# UI APLIKASI
-# ==========================================
+# ===============================
+# UI
+# ===============================
 st.title("Sentiment Analyzer")
-st.subheader("Model: RF, LR & SVM (GAM-GWO Optimized)")
+st.subheader("Using RF, LR & SVM Models")
 
-if VECTORIZER is None or MODELS is None:
-    st.stop()
+model_choice = st.selectbox("Choose Model:", list(models.keys()))
+input_text = st.text_area("Enter text:")
 
-model_choice = st.selectbox("Pilih Model:", list(MODELS.keys()))
-input_text = st.text_area("Masukkan Teks:")
-
-if st.button("Analisis Sentimen"):
+if st.button("Analyze Sentiment"):
     if input_text.strip() == "":
-        st.warning("Teks tidak boleh kosong!")
+        st.warning("Text cannot be empty!")
     else:
         clean_text = text_preprocessing(input_text)
-        X = VECTORIZER.transform([clean_text])
-        prediction = MODELS[model_choice].predict(X)[0]
+        X = vectorizer.transform([clean_text])
+        prediction = models[model_choice].predict(X)[0]
 
-        st.info(f"Teks Bersih: {clean_text}")
+        st.info(f"Processed Text: {clean_text}")
 
         if prediction.lower() == "positif":
-            st.success("Sentimen: POSITIVE ✅")
+            st.success("Result: POSITIVE ✅")
         elif prediction.lower() == "negatif":
-            st.error("Sentimen: NEGATIVE ❌")
+            st.error("Result: NEGATIVE ❌")
         else:
-            st.warning("Sentimen: NEUTRAL ⚖️")
+            st.warning("Result: NEUTRAL ⚖️")

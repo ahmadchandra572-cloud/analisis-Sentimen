@@ -3,95 +3,81 @@ import joblib
 import re
 import string
 
-# ============================
-# Load Sastrawi Stemmer
-# ============================
+# ==========================================
+# STEMMER (Sastrawi)
+# ==========================================
 try:
-    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-    factory = StemmerFactory()
-    stemmer = factory.create_stemmer()
-    SASTRAWI_AVAILABLE = True
+    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
 except:
-    stemmer = None
-    SASTRAWI_AVAILABLE = False
+    STEMMER = None
 
-
-# ============================
-# Text Preprocessing
-# ============================
+# ==========================================
+# PREPROCESSING FUNCTION
+# ==========================================
 @st.cache_data
 def text_preprocessing(text):
     if not isinstance(text, str):
         return ""
 
-    # Lowercase
     text = text.lower()
-
-    # Remove URL, username, number, symbol
     text = re.sub(r'http\S+|www\S+|https\S+', '', text)
     text = re.sub(r'@\w+', '', text)
     text = re.sub(r'\d+', '', text)
     text = text.translate(str.maketrans('', '', string.punctuation))
     text = text.encode('ascii', 'ignore').decode('ascii')
 
-    # Stemming
-    if SASTRAWI_AVAILABLE and stemmer:
-        text = stemmer.stem(text)
+    if STEMMER:
+        text = STEMMER.stem(text)
 
     return text.strip()
 
-
-# ============================
-# Load Vectorizer & Models
-# ============================
+# ==========================================
+# LOAD MODEL & VECTORIZER
+# ==========================================
 @st.cache_resource
-def load_files():
+def load_resources():
     try:
         vectorizer = joblib.load("tfidf_vectorizer.pkl")
-
         models = {
-            "Random Forest (RF)": joblib.load("model_RF_GamGwo.pkl"),
-            "Logistic Regression (LR)": joblib.load("model_LR_GamGwo.pkl"),
-            "Support Vector Machine (SVM)": joblib.load("model_SVM_GamGwo.pkl"),
+            "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
+            "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
+            "SVM": joblib.load("model_SVM_GamGwo.pkl")
         }
-
         return vectorizer, models
     except Exception as e:
-        st.error(f"Gagal load model/vectorizer: {e}")
+        st.error(f"Gagal load model atau vectorizer: {e}")
         return None, None
 
+VECTORIZER, MODELS = load_resources()
 
-vectorizer, models = load_files()
-
-
-# ============================
+# ==========================================
 # UI
-# ============================
-st.title("Aplikasi Analisis Sentimen DPR")
-st.write("Menggunakan model RF, LR, dan SVM (Optimasi GAM-GWO)")
+# ==========================================
+st.title("Sentiment Analyzer")
+st.subheader("Text Sentiment Analysis App")
 
-if vectorizer is None or models is None:
+if VECTORIZER is None or MODELS is None:
     st.stop()
 
-model_choice = st.selectbox("Pilih Model:", list(models.keys()))
+model_choice = st.selectbox("Choose Model:", list(MODELS.keys()))
+input_text = st.text_area("Enter text:", height=120)
 
-text_input = st.text_area("Masukkan komentar:")
-
-if st.button("Analisis Sentimen"):
-    if text_input.strip() == "":
-        st.warning("Teks tidak boleh kosong!")
+if st.button("Analyze Sentiment"):
+    if input_text.strip() == "":
+        st.warning("Text cannot be empty!")
     else:
-        cleaned = text_preprocessing(text_input)
-        X = vectorizer.transform([cleaned])
-
-        model = models[model_choice]
+        cleaned_text = text_preprocessing(input_text)
+        X = VECTORIZER.transform([cleaned_text])
+        model = MODELS[model_choice]
         prediction = model.predict(X)[0]
 
-        st.info(f"Teks Bersih: {cleaned}")
+        st.info(f"Cleaned Text: {cleaned_text}")
 
-        if prediction == "Positif":
-            st.success(f"Sentimen: POSITIF 👍 ({model_choice})")
-        elif prediction == "Negatif":
-            st.error(f"Sentimen: NEGATIF 👎 ({model_choice})")
+        if prediction.lower() == "positif":
+            st.success("Sentiment: POSITIVE ✅")
+        elif prediction.lower() == "negatif":
+            st.error("Sentiment: NEGATIVE ❌")
         else:
-            st.warning(f"Sentimen: NETRAL 😐 ({model_choice})")
+            st.warning("Sentiment: NEUTRAL ⚪")

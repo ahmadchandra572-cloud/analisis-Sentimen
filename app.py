@@ -1,3 +1,13 @@
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background: linear-gradient(to right, #2980b9, #6dd5fa);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 import streamlit as st
 import joblib
 import re

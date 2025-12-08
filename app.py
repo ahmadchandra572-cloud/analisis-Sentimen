@@ -3,10 +3,17 @@ import joblib
 import re
 import string
 import base64
-# Sastrawi tidak perlu diimpor di sini, karena sudah ditangani di bagian try/except global di bawah
+# PENTING: Pastikan Sastrawi ada di requirements.txt!
+try:
+    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
+except:
+    STEMMER = None
+
 
 # ==========================================
-# 0️⃣ KONFIGURASI HALAMAN
+# 0️⃣ KONFIGURASI HALAMAN & ENCODER
 # ==========================================
 st.set_page_config(
     page_title="Analisis Sentimen DPR",
@@ -14,9 +21,6 @@ st.set_page_config(
     layout="centered"
 )
 
-# ==========================================
-# 1️⃣ FUNGSI BACKGROUND & GAYA (CSS DARK NAVY)
-# ==========================================
 def get_base64_of_bin_file(file_path):
     try:
         with open(file_path, 'rb') as f:
@@ -25,20 +29,24 @@ def get_base64_of_bin_file(file_path):
     except FileNotFoundError:
         return None
 
-# NAMA FILE GAMBAR
+# NAMA FILE GAMBAR (Asumsi gamabr)
 BG_IMAGE_FILENAME = "gamabr" 
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 
-# --- STYLE CSS (Biru Dongker Glassmorphism) ---
+
+# ==========================================
+# 1️⃣ CSS STYLE INJECTION (Biru Dongker Glassmorphism)
+# ==========================================
+# --- Background Image + Overlay ---
 if BG_IMAGE_B64:
     background_css = f"""
     <style>
-    /* Background Image dengan overlay */
     .stApp {{
         background-image: linear-gradient(rgba(10, 25, 47, 0.90), rgba(10, 25, 47, 0.95)), 
                           url("data:image/jpeg;base64,{BG_IMAGE_B64}");
         background-size: cover;
         background-position: center;
+        background-repeat: no-repeat;
         background-attachment: fixed;
     }}
     </style>
@@ -52,10 +60,11 @@ else:
     </style>
     """
 
+# --- UI Styling (Font, Card, Button) ---
 ui_style = """
 <style>
-/* Font dan Layout Umum */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
 html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6; }
 
 /* Container Utama (Glassmorphism) */
@@ -68,7 +77,6 @@ html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6;
     max-width: 680px;
 }
 
-/* Judul dan Sub-teks */
 h1 {
     font-weight: 700;
     background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
@@ -78,21 +86,17 @@ h1 {
     margin-bottom: 5px;
     letter-spacing: 1px;
 }
-.subtitle {
-    text-align: center;
-    color: #cbd6f6;
-    font-weight: 300;
-    margin-bottom: 25px;
-}
 
-/* Kartu Hasil yang Centered */
+/* Kartu Hasil (Centered) */
+.result-container { display: flex; justify-content: center; margin-top: 30px; }
 .result-card {
     background: rgba(17, 34, 64, 0.5); 
     backdrop-filter: blur(10px); 
     border-radius: 16px;
     padding: 25px;
     width: 100%;
-    text-align: center; /* Memastikan isinya di tengah */
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .sentiment-badge { 
@@ -101,21 +105,14 @@ h1 {
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-.clean-text-box {
-    background: rgba(2, 12, 27, 0.4);
-    padding: 15px;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #a8b2d1;
-    font-family: 'Courier New', monospace;
-    border-left: 3px solid #64ffda;
-}
+.model-info { font-size: 10px; color: #556080; margin-top: 5px; }
 
-.model-info {
-    font-size: 10px;
-    color: #556080;
-    margin-top: 15px;
-}
+/* Input Area Styling */
+.stTextArea textarea { background-color: rgba(10, 25, 47, 0.6); color: #e6f1ff; border: 1px solid #233554; border-radius: 10px; }
+
+/* Tombol */
+.stButton > button { width: 100%; background: linear-gradient(90deg, #112240, #233554); color: #64ffda; border: 1px solid #64ffda; padding: 12px 0; border-radius: 10px; font-weight: 600; }
+
 </style>
 """
 
@@ -124,15 +121,8 @@ st.markdown(ui_style, unsafe_allow_html=True)
 
 
 # ==========================================
-# 2️⃣ DEPENDENCIES & PREPROCESSING
+# 2️⃣ PREPROCESSING & RESOURCE LOADING
 # ==========================================
-try:
-    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
-    FACTORY = StemmerFactory()
-    STEMMER = FACTORY.create_stemmer()
-except:
-    STEMMER = None
-
 @st.cache_data
 def text_preprocessing(text):
     if not isinstance(text, str): return ""
@@ -149,7 +139,9 @@ def text_preprocessing(text):
 @st.cache_resource
 def load_resources():
     try:
+        # FIX: Load Vectorizer ke variabel yang benar
         vectorizer = joblib.load("tfidf_vectorizer.pkl")
+        # FIX: Load 3 MODEL OPTIMASI
         models = {
             "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
             "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
@@ -164,9 +156,9 @@ VECTORIZER, MODELS = load_resources()
 
 
 # ==========================================
-# 3️⃣ TAMPILAN UTAMA (UI)
+# 3️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
 # ==========================================
-st.markdown("<h1>ANALISIS SENTIMEN ML</h1>", unsafe_allow_html=True)
+st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
 
 if VECTORIZER is None or MODELS is None:
@@ -184,53 +176,38 @@ if analyze_button:
     if input_text.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        # Proses Prediksi
+        # Proses
         clean_text = text_preprocessing(input_text)
         X = VECTORIZER.transform([clean_text])
-        tfidf_shape = X.shape # Menampilkan bentuk vektor (TF-IDF)
         
         model = MODELS[model_choice]
         prediction = model.predict(X)[0]
         
         # Styling Hasil
         if prediction.lower() == "positif":
-            badge_bg = "linear-gradient(90deg, #059669, #34d399)"
+            badge_bg = "linear-gradient(90deg, #059669, #34d399)" # Hijau
             icon = "😊"
             label = "POSITIF"
         elif prediction.lower() == "negatif":
-            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
+            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)" # Merah
             icon = "😡"
             label = "NEGATIF"
         else:
-            badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
+            badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)" # Abu-abu
             icon = "😐"
             label = "NETRAL"
 
-        # Tampilkan Kartu Hasil (Fokus pada Labeling Data ML)
+        # Tampilkan Kartu Hasil (Minimalis)
         st.markdown(f"""
         <div class="result-container">
-            <div class="result-card">
-                <div class="result-label">HASIL PELABELAN DATA (ML)</div>
+            <div class="result-card" style="padding: 20px 25px; max-width: 400px; margin: auto;">
+                <div class="result-label">HASIL PELABELAN DATA</div>
                 
                 <div class="sentiment-badge" style="background: {badge_bg};">
                     {icon} &nbsp; {label}
                 </div>
                 
-                <div style="text-align: left; margin-bottom: 5px; font-size: 11px; color: #8892b0; margin-left: 5px;">
-                    Teks Bersih (Input untuk ML):
-                </div>
-                <div class="clean-text-box">
-                    {clean_text}
-                </div>
-                
-                <div style="text-align: left; margin-bottom: 5px; font-size: 11px; color: #8892b0; margin-left: 5px;">
-                    Vector Shape (TF-IDF):
-                </div>
-                <div class="clean-text-box" style="border-left: 3px solid #ff9900;">
-                    {tfidf_shape}
-                </div>
-                
-                <div class="model-info">
+                <div class="model-info" style="margin-top: 5px;">
                     Algoritma yang Digunakan: <b>{model_choice}</b>
                 </div>
             </div>

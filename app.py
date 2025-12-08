@@ -3,7 +3,7 @@ import joblib
 import re
 import string
 import base64
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory # Jika ini digunakan
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
 
 
 # ==========================================
@@ -28,15 +28,29 @@ BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 
 
 # ==========================================
-# 1️⃣ CSS STYLE INJECTION (Minimalis & Fokus)
+# 1️⃣ CSS STYLE INJECTION (Multi-Layered Texture & Seamless)
 # ==========================================
 # --- Background Image + Overlay ---
 if BG_IMAGE_B64:
+    # Menggunakan background-image yang kompleks: Image + 2 Layers of Gradient
     background_css = f"""
     <style>
+    /* Layer 1: Base Image */
     .stApp {{
-        background-image: linear-gradient(rgba(10, 25, 47, 0.90), rgba(10, 25, 47, 0.95)), 
-                          url("data:image/jpeg;base64,{BG_IMAGE_B64}");
+        background-image: 
+            /* Layer 2 (Pudarnya Biru Dongker) */
+            linear-gradient(rgba(10, 25, 47, 0.90), rgba(10, 25, 47, 0.95)), 
+            /* Layer 3 (Pola Grid Halus untuk kesan 'pecahan') */
+            repeating-linear-gradient(
+                45deg,
+                rgba(100, 255, 218, 0.02), /* Biru Neon Sangat Transparan */
+                rgba(100, 255, 218, 0.02) 2px,
+                transparent 2px,
+                transparent 40px
+            ),
+            /* Base Image */
+            url("data:image/jpeg;base64,{BG_IMAGE_B64}");
+            
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -45,10 +59,13 @@ if BG_IMAGE_B64:
     </style>
     """
 else:
+    # Fallback (Tetap memiliki tekstur biru gelap)
     background_css = """
     <style>
     .stApp {
-        background: radial-gradient(circle at center, #112240 0%, #0a192f 100%);
+        background-image: 
+            repeating-linear-gradient(45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px),
+            radial-gradient(circle at center, #112240 0%, #0a192f 100%);
     }
     </style>
     """
@@ -82,31 +99,27 @@ h1 {
 
 .result-container { display: flex; justify-content: center; margin-top: 30px; }
 
-/* Kartu Hasil Sederhana */
 .result-card {
     background: rgba(17, 34, 64, 0.5); 
     backdrop-filter: blur(10px); 
     border-radius: 16px;
-    padding: 20px 25px; /* Padding dikurangi */
+    padding: 20px 25px; 
     width: 100%;
-    max-width: 400px; /* Batasan lebar untuk hasil minimalis */
+    max-width: 400px; 
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .sentiment-badge { 
-    font-size: 28px; /* Lebih besar */
+    font-size: 28px; 
     font-weight: 700; 
     padding: 15px 40px; 
     border-radius: 50px; 
     display: inline-block; 
     color: white; 
-    margin: 10px 0; /* Fokus hanya pada badge */
+    margin: 10px 0;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
-
-.model-info { display: none; } /* HIDDEN */
-
 </style>
 """
 

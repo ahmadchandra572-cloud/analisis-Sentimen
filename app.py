@@ -3,58 +3,21 @@ import joblib
 import re
 import string
 import base64
-import pandas as pd
-import requests # <-- DIBUTUHKAN untuk mengunduh leksikon
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory # Jika ini digunakan
+# Sastrawi tidak perlu diimpor di sini, karena sudah ditangani di bagian try/except global di bawah
 
 # ==========================================
-# 0️⃣ PRE-LOAD LEXICON (Kamus Kata)
+# 0️⃣ KONFIGURASI HALAMAN
 # ==========================================
-# Unduh kamus leksikon positif dan negatif dari GitHub
-# Menggunakan @st.cache_data agar hanya diunduh sekali
-@st.cache_data
-def load_lexicon():
-    try:
-        positive_url = "https://raw.githubusercontent.com/fajri91/InSet/master/positive.tsv"
-        negative_url = "https://raw.githubusercontent.com/fajri91/InSet/master/negative.tsv"
-        
-        # Baca langsung dari URL
-        positive_lexicon = set(pd.read_csv(positive_url, sep="\t", header=None)[0])
-        negative_lexicon = set(pd.read_csv(negative_url, sep="\t", header=None)[0])
-        return positive_lexicon, negative_lexicon
-    except Exception as e:
-        st.error(f"Gagal memuat leksikon (pastikan internet stabil saat deploy): {e}")
-        return set(), set()
-
-POSITIVE_LEXICON, NEGATIVE_LEXICON = load_lexicon()
-
-# Fungsi untuk menentukan sentimen dan menghitung skornya
-def determine_sentiment_lexicon(text):
-    if isinstance(text, str):
-        # Menggunakan teks yang sudah dibersihkan dan di-stem (dari preprocessing)
-        positive_count = sum(1 for word in text.split() if word in POSITIVE_LEXICON)
-        negative_count = sum(1 for word in text.split() if word in NEGATIVE_LEXICON)
-        
-        sentiment_score = positive_count - negative_count
-        
-        if sentiment_score > 0:
-            sentiment = "Positif"
-        elif sentiment_score < 0:
-            sentiment = "Negatif"
-        else:
-            sentiment = "Netral"
-        return sentiment_score, sentiment
-    return 0, "Netral"
-
+st.set_page_config(
+    page_title="Analisis Sentimen DPR",
+    page_icon="🤖",
+    layout="centered"
+)
 
 # ==========================================
-# BACKGROUND STYLE (Menggunakan CSS lama Anda)
+# 1️⃣ FUNGSI BACKGROUND & GAYA (CSS DARK NAVY)
 # ==========================================
-# [Kode BACKGROUND STYLE ANDA di sini]
-# (Kode yang sama persis seperti yang Anda berikan, termasuk get_base64_of_bin_file dan st.markdown)
-
 def get_base64_of_bin_file(file_path):
-    """Mengubah file gambar menjadi string Base64."""
     try:
         with open(file_path, 'rb') as f:
             data = f.read()
@@ -62,56 +25,109 @@ def get_base64_of_bin_file(file_path):
     except FileNotFoundError:
         return None
 
-# Asumsi nama file adalah 'gamabr'
+# NAMA FILE GAMBAR
 BG_IMAGE_FILENAME = "gamabr" 
-BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME) 
+BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 
-
+# --- STYLE CSS (Biru Dongker Glassmorphism) ---
 if BG_IMAGE_B64:
-    BG_STYLE = f"""
+    background_css = f"""
     <style>
+    /* Background Image dengan overlay */
     .stApp {{
-        background-image: url("data:image/jpeg;base64,{BG_IMAGE_B64}");
+        background-image: linear-gradient(rgba(10, 25, 47, 0.90), rgba(10, 25, 47, 0.95)), 
+                          url("data:image/jpeg;base64,{BG_IMAGE_B64}");
         background-size: cover;
         background-position: center;
-        background-repeat: no-repeat;
         background-attachment: fixed;
-    }}
-    .block-container {{
-        background-color: rgba(17, 24, 39, 0.85);
-        padding: 2rem;
-        border-radius: 16px;
-    }}
-    h1, h2, h3, label, p {{
-        color: #e5e7eb !important;
     }}
     </style>
     """
 else:
-    BG_STYLE = """
+    background_css = """
     <style>
     .stApp {
-        background: linear-gradient(135deg, #1f2937, #111827);
-        background-attachment: fixed;
-    }
-    .block-container {
-        background-color: rgba(17, 24, 39, 0.85);
-        padding: 2rem;
-        border-radius: 16px;
-    }
-    h1, h2, h3, label, p {
-        color: #e5e7eb !important;
+        background: radial-gradient(circle at center, #112240 0%, #0a192f 100%);
     }
     </style>
     """
 
-st.markdown(BG_STYLE, unsafe_allow_html=True)
+ui_style = """
+<style>
+/* Font dan Layout Umum */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6; }
+
+/* Container Utama (Glassmorphism) */
+.block-container {
+    background-color: rgba(17, 34, 64, 0.4); 
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 3rem 2rem !important;
+    border: 1px solid rgba(100, 255, 218, 0.1); 
+    max-width: 680px;
+}
+
+/* Judul dan Sub-teks */
+h1 {
+    font-weight: 700;
+    background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+.subtitle {
+    text-align: center;
+    color: #cbd6f6;
+    font-weight: 300;
+    margin-bottom: 25px;
+}
+
+/* Kartu Hasil yang Centered */
+.result-card {
+    background: rgba(17, 34, 64, 0.5); 
+    backdrop-filter: blur(10px); 
+    border-radius: 16px;
+    padding: 25px;
+    width: 100%;
+    text-align: center; /* Memastikan isinya di tengah */
+}
+
+.sentiment-badge { 
+    font-size: 24px; font-weight: 700; padding: 12px 35px; border-radius: 50px; 
+    display: inline-block; color: white; margin-bottom: 20px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.clean-text-box {
+    background: rgba(2, 12, 27, 0.4);
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #a8b2d1;
+    font-family: 'Courier New', monospace;
+    border-left: 3px solid #64ffda;
+}
+
+.model-info {
+    font-size: 10px;
+    color: #556080;
+    margin-top: 15px;
+}
+</style>
+"""
+
+st.markdown(background_css, unsafe_allow_html=True)
+st.markdown(ui_style, unsafe_allow_html=True)
+
 
 # ==========================================
-# STEMMER & PREPROCESSING
+# 2️⃣ DEPENDENCIES & PREPROCESSING
 # ==========================================
 try:
-    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
     FACTORY = StemmerFactory()
     STEMMER = FACTORY.create_stemmer()
 except:
@@ -130,15 +146,10 @@ def text_preprocessing(text):
         text = STEMMER.stem(text)
     return text.strip()
 
-
-# ==========================================
-# LOAD MODEL DAN VECTORIZER
-# ==========================================
 @st.cache_resource
 def load_resources():
     try:
         vectorizer = joblib.load("tfidf_vectorizer.pkl")
-
         models = {
             "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
             "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
@@ -146,60 +157,82 @@ def load_resources():
         }
         return vectorizer, models
     except Exception as e:
-        st.error(f"Gagal load file: {e}")
+        st.error(f"Gagal memuat sistem: {e}")
         return None, None
 
 VECTORIZER, MODELS = load_resources()
 
+
 # ==========================================
-# UI & LOGIC
+# 3️⃣ TAMPILAN UTAMA (UI)
 # ==========================================
-st.title("Sentiment Analyzer")
-st.subheader("Text Sentiment Analysis App")
+st.markdown("<h1>ANALISIS SENTIMEN ML</h1>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
 
 if VECTORIZER is None or MODELS is None:
+    st.error("⚠️ Sistem gagal dimuat.")
     st.stop()
 
-model_choice = st.selectbox("Choose Model", list(MODELS.keys()))
-input_text = st.text_area("Enter text here", height=120)
+# Layout Input
+with st.container():
+    model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
+    input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
+    analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
-if st.button("Analyze Sentiment"):
+# Logika Hasil
+if analyze_button:
     if input_text.strip() == "":
-        st.warning("Text cannot be empty!")
+        st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        # 1. Preprocessing
+        # Proses Prediksi
         clean_text = text_preprocessing(input_text)
-        
-        # 2. Prediction ML (Machine Learning)
         X = VECTORIZER.transform([clean_text])
-        model = MODELS[model_choice]
-        ml_prediction = model.predict(X)[0]
-
-        # 3. Prediction Lexicon
-        lex_score, lex_prediction = determine_sentiment_lexicon(clean_text)
-
-        # 4. Tampilkan Hasil
-        st.info(f"Teks Bersih: {clean_text}")
-
-        # Tampilkan perbandingan dalam bentuk tabel/kolom
-        col1, col2 = st.columns(2)
+        tfidf_shape = X.shape # Menampilkan bentuk vektor (TF-IDF)
         
-        with col1:
-            st.markdown(f"**🤖 HASIL MACHINE LEARNING ({model_choice})**")
-            
-            if ml_prediction.lower() == "positif":
-                st.success(f"**SENTIMEN: {ml_prediction.upper()} ✅**")
-            elif ml_prediction.lower() == "negatif":
-                st.error(f"**SENTIMEN: {ml_prediction.upper()} ❌**")
-            else:
-                st.warning(f"**SENTIMEN: {ml_prediction.upper()} ⚪**")
+        model = MODELS[model_choice]
+        prediction = model.predict(X)[0]
+        
+        # Styling Hasil
+        if prediction.lower() == "positif":
+            badge_bg = "linear-gradient(90deg, #059669, #34d399)"
+            icon = "😊"
+            label = "POSITIF"
+        elif prediction.lower() == "negatif":
+            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
+            icon = "😡"
+            label = "NEGATIF"
+        else:
+            badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
+            icon = "😐"
+            label = "NETRAL"
 
-        with col2:
-            st.markdown(f"**📚 HASIL LEXICON (InSet)**")
-            
-            if lex_prediction.lower() == "positif":
-                st.success(f"**SKOR: {lex_score} | SENTIMEN: {lex_prediction.upper()} ✅**")
-            elif lex_prediction.lower() == "negatif":
-                st.error(f"**SKOR: {lex_score} | SENTIMEN: {lex_prediction.upper()} ❌**")
-            else:
-                st.info(f"**SKOR: {lex_score} | SENTIMEN: {lex_prediction.upper()} ⚪**")
+        # Tampilkan Kartu Hasil (Fokus pada Labeling Data ML)
+        st.markdown(f"""
+        <div class="result-container">
+            <div class="result-card">
+                <div class="result-label">HASIL PELABELAN DATA (ML)</div>
+                
+                <div class="sentiment-badge" style="background: {badge_bg};">
+                    {icon} &nbsp; {label}
+                </div>
+                
+                <div style="text-align: left; margin-bottom: 5px; font-size: 11px; color: #8892b0; margin-left: 5px;">
+                    Teks Bersih (Input untuk ML):
+                </div>
+                <div class="clean-text-box">
+                    {clean_text}
+                </div>
+                
+                <div style="text-align: left; margin-bottom: 5px; font-size: 11px; color: #8892b0; margin-left: 5px;">
+                    Vector Shape (TF-IDF):
+                </div>
+                <div class="clean-text-box" style="border-left: 3px solid #ff9900;">
+                    {tfidf_shape}
+                </div>
+                
+                <div class="model-info">
+                    Algoritma yang Digunakan: <b>{model_choice}</b>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)

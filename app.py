@@ -2,46 +2,69 @@ import streamlit as st
 import joblib
 import re
 import string
+import base64 # <-- TAMBAHAN: Untuk meng-encode gambar
 
 # ==========================================
-# BACKGROUND STYLE
+# 0️⃣ BACKGROUND IMAGE ENCODER
 # ==========================================
-st.markdown("""
-<style>
-.stApp {
-    background: linear-gradient(135deg, #1f2937, #111827);
-    background-attachment: fixed;
-}
+def get_base64_of_bin_file(file_path):
+    """Mengubah file gambar menjadi string Base64."""
+    try:
+        with open(file_path, 'rb') as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except FileNotFoundError:
+        return None # Mengembalikan None jika file tidak ditemukan
 
-.stApp::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 200%;
-    height: 200%;
-    background-image: repeating-linear-gradient(
-        45deg,
-        rgba(255,255,255,0.03),
-        rgba(255,255,255,0.03) 2px,
-        transparent 2px,
-        transparent 40px
-    );
-    z-index: -1;
-}
+# Asumsi nama file adalah 'gamabr' dan formatnya jpg. Harap dicek di repo!
+BG_IMAGE_FILENAME = "gamabr" 
+BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME) 
 
-.block-container {
-    background-color: rgba(17, 24, 39, 0.85);
-    padding: 2rem;
-    border-radius: 16px;
-}
 
-h1, h2, h3, label, p {
-    color: #e5e7eb !important;
-}
-</style>
-""", unsafe_allow_html=True)
+# ==========================================
+# BACKGROUND STYLE (MODIFIED TO USE IMAGE)
+# ==========================================
+if BG_IMAGE_B64:
+    # Jika gambar berhasil dimuat, gunakan gambar sebagai background
+    BG_STYLE = f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/jpeg;base64,{BG_IMAGE_B64}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    .block-container {{
+        background-color: rgba(17, 24, 39, 0.85); /* Agar teks di konten tetap terbaca */
+        padding: 2rem;
+        border-radius: 16px;
+    }}
+    h1, h2, h3, label, p {{
+        color: #e5e7eb !important;
+    }}
+    </style>
+    """
+else:
+    # Jika gambar gagal dimuat, kembali ke background gradient default Anda
+    BG_STYLE = """
+    <style>
+    .stApp {
+        background: linear-gradient(135deg, #1f2937, #111827);
+        background-attachment: fixed;
+    }
+    .block-container {
+        background-color: rgba(17, 24, 39, 0.85);
+        padding: 2rem;
+        border-radius: 16px;
+    }
+    h1, h2, h3, label, p {
+        color: #e5e7eb !important;
+    }
+    </style>
+    """
 
+st.markdown(BG_STYLE, unsafe_allow_html=True)
 # ==========================================
 # STEMMER
 # ==========================================
@@ -56,6 +79,7 @@ except:
 # PREPROCESSING FUNCTION
 # ==========================================
 @st.cache_data
+# ... (lanjutkan fungsi text_preprocessing) ...
 def text_preprocessing(text):
     if not isinstance(text, str):
         return ""

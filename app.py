@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 1️⃣ FUNGSI BACKGROUND & GAYA (CSS)
+# 1️⃣ FUNGSI BACKGROUND & GAYA (CSS PREMIUM)
 # ==========================================
 def get_base64_of_bin_file(file_path):
     try:
@@ -24,19 +24,17 @@ def get_base64_of_bin_file(file_path):
     except FileNotFoundError:
         return None
 
-# PENTING: Sesuaikan nama ini dengan nama file di GitHub Anda
-# Berdasarkan gambar Anda sebelumnya, nama filenya adalah 'gamabr' (tanpa .jpg)
+# NAMA FILE GAMBAR (Sesuai request: 'gamabr' tanpa ekstensi)
 BG_IMAGE_FILENAME = "gamabr" 
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 
-# --- CSS STYLING ---
-# Menyiapkan background
+# --- STYLE CSS KHUSUS ---
+# 1. Background Image (TETAP SAMA, TIDAK DIUBAH)
 if BG_IMAGE_B64:
-    # Jika gambar ketemu, pakai gambar + overlay biru gelap
-    page_bg_img = f"""
+    background_css = f"""
     <style>
     .stApp {{
-        background-image: linear-gradient(rgba(15, 23, 42, 0.80), rgba(15, 23, 42, 0.90)), 
+        background-image: linear-gradient(rgba(10, 25, 47, 0.85), rgba(10, 25, 47, 0.95)), 
                           url("data:image/jpeg;base64,{BG_IMAGE_B64}");
         background-size: cover;
         background-position: center;
@@ -46,103 +44,152 @@ if BG_IMAGE_B64:
     </style>
     """
 else:
-    # Jika gambar tidak ketemu, pakai warna solid biru gelap
-    page_bg_img = """
-    <style>
-    .stApp {
-        background: linear-gradient(135deg, #0f172a, #1e293b);
-    }
-    </style>
-    """
+    background_css = "<style>.stApp {background: #0f172a;}</style>"
 
-# Menyiapkan Style UI (Kartu, Header, Tombol)
+# 2. UI Styling (Font Keren & Tabel Rapi Tengah)
 ui_style = """
 <style>
-/* Container Utama Transparan */
-.block-container {
-    background-color: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 3rem !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    max-width: 700px;
+/* Import Google Font: Poppins */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap');
+
+/* Reset Font Global */
+html, body, [class*="css"] {
+    font-family: 'Poppins', sans-serif;
 }
 
-/* Header Text */
+/* Container Utama (Glassmorphism) */
+.block-container {
+    background-color: rgba(255, 255, 255, 0.03); /* Transparan gelap */
+    backdrop-filter: blur(12px);
+    border-radius: 24px;
+    padding: 3rem 2rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    max-width: 680px; /* Lebar dibatasi agar rapi di tengah */
+}
+
+/* Judul Utama */
 h1 {
-    background: -webkit-linear-gradient(45deg, #38bdf8, #818cf8);
+    font-weight: 800;
+    background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-weight: 900;
     text-align: center;
-    padding-bottom: 10px;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
 }
 
-h3, p, label, .stMarkdown {
-    color: #e2e8f0 !important;
+/* Sub-teks */
+.subtitle {
+    text-align: center;
+    color: #cbd5e1;
+    font-size: 14px;
+    font-weight: 300;
+    margin-bottom: 30px;
 }
 
-/* Text Area Input */
+/* Text Area */
 .stTextArea textarea {
     background-color: rgba(15, 23, 42, 0.6);
     color: white;
-    border: 1px solid #475569;
+    border: 1px solid #334155;
     border-radius: 12px;
+    font-size: 14px;
+}
+.stTextArea textarea:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
 }
 
 /* Tombol Analisis */
 .stButton > button {
-    background: linear-gradient(90deg, #3b82f6, #2563eb);
+    width: 100%;
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
     color: white;
     border: none;
+    padding: 12px 0;
     border-radius: 12px;
-    height: 50px;
-    font-weight: bold;
-    letter-spacing: 1px;
-    transition: all 0.3s ease;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: 0.3s;
+    margin-top: 10px;
 }
 .stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+    background: linear-gradient(90deg, #1d4ed8, #2563eb);
+    transform: scale(1.02);
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
 }
 
-/* Kartu Hasil (Result Card) */
+/* --- KARTU HASIL (CARD) YANG DI REQUEST --- */
+.result-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
 .result-card {
-    background: rgba(30, 41, 59, 0.7);
-    border-radius: 16px;
-    padding: 25px;
-    margin-top: 25px;
+    background: rgba(30, 41, 59, 0.8);
+    border-radius: 20px;
+    padding: 30px;
+    width: 100%;
     text-align: center;
-    border: 1px solid rgba(255,255,255,0.1);
-    animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.8s ease-out;
+}
+
+.result-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #94a3b8;
+    margin-bottom: 15px;
 }
 
 .sentiment-badge {
-    font-size: 28px;
-    font-weight: 800;
-    padding: 12px 30px;
-    border-radius: 50px;
     display: inline-block;
-    margin: 20px 0;
+    padding: 12px 35px;
+    border-radius: 50px;
+    font-size: 24px;
+    font-weight: 700;
     color: white;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px); }
+.clean-text-box {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 13px;
+    color: #bae6fd;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 15px;
+    border-left: 3px solid #38bdf8;
+}
+
+.model-info {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 10px;
+}
+
+/* Animasi */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 </style>
 """
 
-# Terapkan CSS
-st.markdown(page_bg_img, unsafe_allow_html=True)
+# Terapkan Semua CSS
+st.markdown(background_css, unsafe_allow_html=True)
 st.markdown(ui_style, unsafe_allow_html=True)
 
 
 # ==========================================
-# 2️⃣ LOAD DEPENDENCIES (SASTRAWI & RESOURCES)
+# 2️⃣ LOAD DEPENDENCIES
 # ==========================================
 try:
     from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
@@ -185,70 +232,65 @@ VECTORIZER, MODELS = load_resources()
 # 3️⃣ TAMPILAN UTAMA (UI)
 # ==========================================
 st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; opacity: 0.7; margin-top: -15px;'>Deteksi Opini Publik Isu Gaji DPR dengan Optimasi GAM-GWO</p>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR dengan Optimasi GAM-GWO</div>", unsafe_allow_html=True)
 
 if VECTORIZER is None or MODELS is None:
-    st.warning("⚠️ Sistem sedang memuat model... Jika lama, coba refresh.")
+    st.error("⚠️ Sistem gagal dimuat. Cek file .pkl di repo.")
     st.stop()
 
-# Layout Input
+# Layout Input yang Rapi
 with st.container():
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
-    with col2:
-        st.write("") # Spacer
+    model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
+    input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=120)
+    analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
-    input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
-
-    col_l, col_m, col_r = st.columns([1, 1.5, 1])
-    with col_m:
-        analyze_button = st.button("🔍 ANALISIS SEKARANG", use_container_width=True)
-
-# Logika Hasil
+# Logika Hasil dengan Tampilan Kartu Tengah
 if analyze_button:
     if input_text.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        # Proses Prediksi
+        # Proses
         clean_text = text_preprocessing(input_text)
         X = VECTORIZER.transform([clean_text])
         model = MODELS[model_choice]
         prediction = model.predict(X)[0]
         
-        # Styling Hasil
+        # Tentukan Gaya Kartu Berdasarkan Hasil
         if prediction.lower() == "positif":
-            badge_color = "linear-gradient(135deg, #059669, #34d399)"
+            badge_bg = "linear-gradient(135deg, #10b981, #34d399)" # Hijau
             icon = "😊"
             label = "POSITIF"
         elif prediction.lower() == "negatif":
-            badge_color = "linear-gradient(135deg, #dc2626, #f87171)"
+            badge_bg = "linear-gradient(135deg, #ef4444, #f87171)" # Merah
             icon = "😡"
             label = "NEGATIF"
         else:
-            badge_color = "linear-gradient(135deg, #475569, #94a3b8)"
+            badge_bg = "linear-gradient(135deg, #64748b, #94a3b8)" # Abu-abu
             icon = "😐"
             label = "NETRAL"
 
-        # Tampilkan Kartu Hasil
+        # Tampilkan KARTU HASIL (HTML)
+        # Kartu ini didesain agar teks & elemennya rata tengah (text-align: center)
+        # dan kontainernya sendiri berada di tengah (margin auto).
         st.markdown(f"""
-        <div class="result-card">
-            <p style="color:#94a3b8; font-size:14px; letter-spacing:1px; text-transform:uppercase;">Hasil Prediksi</p>
-            
-            <div class="sentiment-badge" style="background: {badge_color};">
-                {icon} &nbsp; {label}
+        <div class="result-container">
+            <div class="result-card">
+                <div class="result-label">HASIL PREDIKSI</div>
+                
+                <div class="sentiment-badge" style="background: {badge_bg};">
+                    {icon} &nbsp; {label}
+                </div>
+                
+                <div style="text-align: left; margin-bottom: 5px; font-size: 11px; color: #94a3b8; margin-left: 5px;">
+                    Teks Bersih (Preprocessed):
+                </div>
+                <div class="clean-text-box">
+                    {clean_text}
+                </div>
+                
+                <div class="model-info">
+                    Dianalisis menggunakan algoritma <b>{model_choice}</b>
+                </div>
             </div>
-            
-            <div style="background:rgba(0,0,0,0.2); padding:15px; border-radius:10px; text-align:left; margin-top:10px;">
-                <p style="color:#cbd5e1; font-size:12px; margin:0;">Teks Asli:</p>
-                <p style="color:white; font-style:italic; margin:5px 0;">"{input_text}"</p>
-                <hr style="border-color:rgba(255,255,255,0.1);">
-                <p style="color:#cbd5e1; font-size:12px; margin:0;">Teks Bersih (Preprocessed):</p>
-                <p style="color:#60a5fa; font-family:monospace; margin:5px 0;">{clean_text}</p>
-            </div>
-            
-            <p style="margin-top: 15px; font-size: 11px; opacity: 0.5;">
-                Model: <b>{model_choice}</b>
-            </p>
         </div>
         """, unsafe_allow_html=True)

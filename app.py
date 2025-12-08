@@ -2,110 +2,112 @@ import streamlit as st
 import joblib
 import re
 import string
-# PENTING: Sastrawi harus diimpor untuk Stemming.
+import base64
+
+# ===============================
+# BACKGROUND IMAGE
+# ===============================
+def get_base64_of_bin_file(file_path):
+    with open(file_path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+bg_image = get_base64_of_bin_file("gamabr.jpg")
+
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/jpg;base64,{bg_image}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }}
+
+    h1, h2, h3, p, label {{
+        color: white !important;
+    }}
+
+    .stTextArea textarea {{
+        background-color: rgba(0,0,0,0.6);
+        color: white;
+    }}
+
+    .stSelectbox div {{
+        background-color: rgba(0,0,0,0.6);
+        color: white;
+    }}
+
+    .stButton button {{
+        background-color: #2c7be5;
+        color: white;
+        border-radius: 10px;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ===============================
+# STEMMER (SASTRAWI)
+# ===============================
 try:
-    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
-    # Inisialisasi Stemmer di luar fungsi untuk efisiensi
-    FACTORY = StemmerFactory()
-    STEMMER = FACTORY.create_stemmer()
-except ImportError:
-    # Ini akan dieksekusi jika 'Sastrawi' tidak ada di requirements.txt Streamlit
-    STEMMER = None
-except Exception:
+    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+    STEMMER = StemmerFactory().create_stemmer()
+except:
     STEMMER = None
 
-
-# ==========================================
-# 0️⃣ PREPROCESSING FUNCTION (Wajib Sama dengan Training)
-# ==========================================
-@st.cache_data
+# ===============================
+# PREPROCESSING
+# ===============================
 def text_preprocessing(text):
-    """Membersihkan dan melakukan stemming pada teks input."""
-    if not isinstance(text, str): 
-        return ""
-    
-    # 1. Case Folding
     text = text.lower()
-    
-    # 2. Cleaning (Hapus URL, username, angka, dan simbol)
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
-    text = re.sub(r'@\w+','', text)
-    text = re.sub(r'\d+', '', text)
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    text = text.encode('ascii', 'ignore').decode('ascii')
-    
-    # 3. Stemming (Sastrawi) - Hanya dijalankan jika berhasil diimpor
+    text = re.sub(r"http\S+|www\S+|https\S+", "", text)
+    text = re.sub(r"@\w+", "", text)
+    text = re.sub(r"\d+", "", text)
+    text = text.translate(str.maketrans("", "", string.punctuation))
+
     if STEMMER:
         text = STEMMER.stem(text)
-        
+
     return text.strip()
 
-# ==========================================
-# 1️⃣ LOAD SEMUA MODEL DAN VECTORIZER (FIXED LOGIC)
-# ==========================================
+# ===============================
+# LOAD MODEL
+# ===============================
 @st.cache_resource
-def load_resources():
-    try:
-        # ✅ FIX: Load Vectorizer ke variabel yang benar (vectorizer)
-        vectorizer = joblib.load("tfidf_vectorizer.pkl")
-        
-        # ✅ FIX: Load 3 MODEL OPTIMASI ke dictionary models
-        models = {
-            "Random Forest (RF)": joblib.load("model_RF_GamGwo.pkl"),
-            "Logistic Regression (LR)": joblib.load("model_LR_GamGwo.pkl"),
-            "Support Vector Machine (SVM)": joblib.load("model_SVM_GamGwo.pkl"),
-        }
-        return vectorizer, models
-    except Exception as e:
-        # Menampilkan error yang jelas jika ada masalah loading file
-        st.error(f"FATAL ERROR: Gagal memuat file .pkl. Pastikan semua file .pkl diupload dan nama file sudah benar. Detail: {e}")
-        return None, None
-            
-VECTORIZER, MODELS = load_resources()
+def load_models():
+    vectorizer = joblib.load("tfidf_vectorizer.pkl")
+    models = {
+        "Random Forest (RF)": joblib.load("model_RF_GamGwo.pkl"),
+        "Logistic Regression (LR)": joblib.load("model_LR_GamGwo.pkl"),
+        "Support Vector Machine (SVM)": joblib.load("model_SVM_GamGwo.pkl"),
+    }
+    return vectorizer, models
 
+vectorizer, models = load_models()
 
-# ==========================================
-# 2️⃣ ANTARMUKA PENGGUNA (UI)
-# ==========================================
-st.title("Aplikasi Analisis Sentimen DPR")
-st.subheader("Model Optimasi GAM-GWO")
+# ===============================
+# UI
+# ===============================
+st.title("Sentiment Analyzer")
+st.subheader("Using RF, LR & SVM Models")
 
-# Cek apakah resource berhasil dimuat
-if MODELS is None or VECTORIZER is None:
-    st.warning("Aplikasi tidak dapat berjalan karena error pemuatan file. Harap cek log Streamlit.")
-    st.stop() # Hentikan eksekusi script
+model_choice = st.selectbox("Choose Model:", list(models.keys()))
+input_text = st.text_area("Enter text:")
 
-# Pilihan Model menggunakan Selectbox
-model_options = list(MODELS.keys())
-model_choice = st.selectbox("Pilih Algoritma Prediksi:", model_options)
-
-input_text = st.text_area("Masukkan Komentar YouTube di sini:", height=100)
-
-if st.button("Analisis"):
+if st.button("Analyze Sentiment"):
     if input_text.strip() == "":
-        st.warning("Teks tidak boleh kosong!")
-        
+        st.warning("Text cannot be empty!")
     else:
-        # 1. Preprocessing Input (Dilakukan sebelum transform)
         clean_text = text_preprocessing(input_text)
-        
-        # 2. Vectorization (Menggunakan Vectorizer TF-IDF)
-        X = VECTORIZER.transform([clean_text])
-        
-        # 3. Prediksi
-        selected_model = MODELS[model_choice]
-        prediction = selected_model.predict(X)[0]
+        X = vectorizer.transform([clean_text])
+        prediction = models[model_choice].predict(X)[0]
 
-        # 4. Tampilkan Hasil
-        st.info(f"Teks Bersih (Preprocessed): {clean_text}")
+        st.info(f"Processed Text: {clean_text}")
 
-        if prediction == "Positif":
-            st.success(f"Sentimen: POSITIF 👍 (Model: {model_choice})")
-        elif prediction == "Negatif":
-            st.error(f"Sentimen: NEGATIF 👎 (Model: {model_choice})")
+        if prediction.lower() == "positif":
+            st.success("Result: POSITIVE ✅")
+        elif prediction.lower() == "negatif":
+            st.error("Result: NEGATIVE ❌")
         else:
-            st.warning(f"Sentimen: NETRAL 😐 (Model: {model_choice})")
-
-### **Tindakan Lanjutan (Untuk Menghindari Error)**
-
-Pastikan Anda telah melakukan *commit* perubahan pada file **`requirements.txt`** di GitHub Anda, dengan menyertakan:
+            st.warning("Result: NEUTRAL ⚖️")

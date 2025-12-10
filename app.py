@@ -2,27 +2,26 @@ import streamlit as st
 import joblib
 import base64
 import pandas as pd
-
 from preprocessing import *
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
-# ================================
-# Config
-# ================================
+# ====================================
+# CONFIG
+# ====================================
 st.set_page_config(
     page_title="Analisis Sentimen DPR",
     page_icon="🤖",
     layout="centered"
 )
 
-# ================================
-# Load Kamus
-# ================================
+# ====================================
+# LOAD KAMUS
+# ====================================
 KAMUS = load_kamus()
 
-# ================================
-# Image Loader
-# ================================
+# ====================================
+# IMAGE LOADER
+# ====================================
 def get_base64(file):
     try:
         with open(file, "rb") as f:
@@ -33,61 +32,68 @@ def get_base64(file):
 BG = get_base64("gamabr.jpg")
 EXTRA = get_base64("images.jpg")
 
-# ================================
-# CSS
-# ================================
+# ====================================
+# CSS BACKGROUND
+# ====================================
 st.markdown(f"""
 <style>
 .stApp {{
-    background-image: 
-        linear-gradient(rgba(10,20,40,0.5), rgba(10,20,40,0.6)),
-        url("data:image/jpg;base64,{BG}");
+    background-image:
+        linear-gradient(rgba(10,25,47,0.5), rgba(10,25,47,0.6)),
+        url("data:image/jpeg;base64,{BG}");
     background-size: cover;
+    background-attachment: fixed;
 }}
 
 .block-container {{
-    background: rgba(17,34,64,0.3);
+    background: rgba(17,34,64,0.35);
+    backdrop-filter: blur(8px);
     padding: 2rem;
     border-radius: 20px;
+}}
+
+.image-left-style {{
+    border-radius: 12px;
+    border: 3px solid #64ffda;
 }}
 </style>
 """, unsafe_allow_html=True)
 
-# ================================
-# Stemmer
-# ================================
+# ====================================
+# STEMMER
+# ====================================
 factory = StemmerFactory()
 stemmer = factory.create_stemmer()
 
-# ================================
-# Preprocessing Pipeline
-# ================================
-def preprocess(text):
-    t = remove_emoji(text)
-    t = remove_symbols(t)
-    t = remove_numbers(t)
-    t = remove_username(t)
-    t = remove_url(t)
-    t = remove_html(t)
+# ====================================
+# PREPROCESSING PIPELINE
+# ====================================
+def full_preprocessing(text):
+    teks = remove_emoji(text)
+    teks = remove_symbols(teks)
+    teks = remove_numbers(teks)
+    teks = remove_username(teks)
+    teks = remove_url(teks)
+    teks = remove_html(teks)
 
-    lower = t.lower().split()
-    norm = [KAMUS.get(w, w) for w in lower]
+    low = teks.lower().split()
+    norm = [KAMUS.get(w, w) for w in low]
     norm_text = " ".join(norm)
     stem = stemmer.stem(norm_text)
 
     return {
         "original": text,
-        "cleaning": t,
-        "case_folding": " ".join(lower),
+        "cleaning": teks,
+        "case_folding": " ".join(low),
         "normalisasi": norm_text,
         "stemming": stem
     }
 
-# ================================
-# Load Model + TF-IDF
-# ================================
+# ====================================
+# LOAD MODEL + TFIDF
+# ====================================
 @st.cache_resource
-def load_model():
+def load_all():
     vec = joblib.load("tfidf_vectorizer.pkl")
     models = {
         "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
@@ -96,49 +102,72 @@ def load_model():
     }
     return vec, models
 
-VECTORIZER, MODELS = load_model()
+VECTORIZER, MODELS = load_all()
 
-# ================================
-# UI
-# ================================
-st.title("🤖 Aplikasi Analisis Sentimen AI")
+# ====================================
+# UI TITLE
+# ====================================
+st.markdown("<h1 style='text-align:center;'>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
 
-model_option = st.selectbox("Pilih Model", list(MODELS.keys()))
-text = st.text_area("Masukkan Komentar")
+col_img, col_input = st.columns([1,2])
 
-if st.button("Analisis"):
+with col_img:
+    if EXTRA:
+        st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
+        st.image(f"data:image/jpeg;base64,{EXTRA}", use_column_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+with col_input:
+    algo = st.selectbox("Pilih Algoritma", list(MODELS.keys()))
+    text = st.text_area("Masukkan Komentar")
+    btn = st.button("🔍 Analisis")
+
+# ====================================
+# PROSES
+# ====================================
+if btn:
     if text.strip() == "":
-        st.warning("Masukkan teks dulu")
+        st.warning("Masukkan teks!")
         st.stop()
 
-    hasil = preprocess(text)
+    hasil = full_preprocessing(text)
     X = VECTORIZER.transform([hasil["stemming"]])
 
-    model = MODELS[model_option]
+    model = MODELS[algo]
 
-    # ================================
-    # Override rule
-    # ================================
-    positif = ["baik", "bagus", "mantap", "hebat", "keren", "top"]
-    negatif = ["buruk", "jelek", "parah", "busuk", "gagal"]
+    # Manual override
+    positif = ["baik", "bagus", "mantap", "hebat"]
+    negatif = ["buruk", "jelek", "parah", "gagal"]
 
-    stem_text = hasil["stemming"].strip()
+    stem = hasil["stemming"].strip()
 
-    if stem_text in positif:
+    if stem in positif:
         pred = "positif"
-    elif stem_text in negatif:
+    elif stem in negatif:
         pred = "negatif"
     else:
         pred = model.predict(X)[0]
 
-    # ================================
-    # Tabel
-    # ================================
+    # TABEL
     st.subheader("Hasil Preprocessing")
     st.dataframe(pd.DataFrame([hasil]))
 
-    # ================================
-    # Output
-    # ================================
-    st.subheader("Hasil Analisis")
-    st.success(f"Hasil Sentimen: {pred.upper()}")
+    # BADGE
+    if pred == "positif":
+        bg = "green"
+        icon = "😊"
+    elif pred == "negatif":
+        bg = "red"
+        icon = "😡"
+    else:
+        bg = "gray"
+        icon = "😐"
+
+    st.markdown(f"""
+    <div style="text-align:center;margin-top:20px;">
+        <div style="background:{bg};padding:15px 40px;
+        border-radius:50px;font-size:25px;color:white;">
+        {icon} {pred.upper()}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)

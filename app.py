@@ -262,9 +262,7 @@ with st.container():
              st.info("Gambar tambahan tidak ditemukan.")
 
     with col_input:
-        # Pilihan Algoritma diganti dengan informasi algoritma yang digunakan
-        st.markdown(f"**⚙️ Algoritma Klasifikasi Terpilih:**")
-        st.markdown(f'<div class="chosen-algo">🏅 {CHOSEN_MODEL_NAME}</div>', unsafe_allow_html=True)
+        # Pilihan Algoritma dihapus dari sini.
         
         input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
         analyze_button = st.button("🔍 ANALISIS SEKARANG")

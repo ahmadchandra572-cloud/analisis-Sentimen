@@ -3,11 +3,20 @@ import joblib
 import re
 import string
 import base64
-
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+import os
 
 # ==========================================
-# 0. KONFIGURASI HALAMAN
+# LOAD STEMMER
+# ==========================================
+try:
+    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
+except:
+    STEMMER = None
+
+# ==========================================
+# KONFIGURASI HALAMAN
 # ==========================================
 st.set_page_config(
     page_title="Analisis Sentimen DPR",
@@ -16,40 +25,39 @@ st.set_page_config(
 )
 
 # ==========================================
-# 1. FUNGSI LOAD GAMBAR
+# FUNGSI LOAD GAMBAR (AMAN)
 # ==========================================
 def get_base64_of_bin_file(file_path):
     try:
+        if not os.path.isfile(file_path):
+            st.warning(f"❗ File tidak ditemukan: {file_path}")
+            return None
+
         with open(file_path, 'rb') as f:
             data = f.read()
         return base64.b64encode(data).decode()
-    except FileNotFoundError:
+    except Exception as e:
+        st.error(f"❗ Error baca gambar: {e}")
         return None
 
-# Gambar Background (WAJIB file, bukan folder)
-BG_IMAGE_FILENAME = "gamabr/background.jpg"
-BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
-
-# Gambar Samping
+# ==========================================
+# PATH GAMBAR (SUDAH BENAR)
+# ==========================================
+BG_IMAGE_FILENAME = "gamabr/background.jpg"   # ✅ HARUS file, bukan folder
 EXTRA_IMAGE_FILENAME = "images.jpg"
+
+BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
 
 # ==========================================
-# 2. CSS BACKGROUND
+# CSS BACKGROUND
 # ==========================================
 if BG_IMAGE_B64:
     background_css = f"""
     <style>
     .stApp {{
         background-image: 
-            linear-gradient(rgba(10, 25, 47, 0.40), rgba(10, 25, 47, 0.60)),
-            repeating-linear-gradient(
-                45deg,
-                rgba(100, 255, 218, 0.02),
-                rgba(100, 255, 218, 0.02) 2px,
-                transparent 2px,
-                transparent 40px
-            ),
+            linear-gradient(rgba(10, 25, 47, 0.4), rgba(10, 25, 47, 0.6)), 
             url("data:image/jpeg;base64,{BG_IMAGE_B64}");
         background-size: cover;
         background-position: center;
@@ -62,21 +70,13 @@ else:
     background_css = """
     <style>
     .stApp {
-        background-image:
-            repeating-linear-gradient(
-                45deg,
-                rgba(100, 255, 218, 0.02),
-                rgba(100, 255, 218, 0.02) 2px,
-                transparent 2px,
-                transparent 40px
-            ),
-            radial-gradient(circle at center, #112240 0%, #0a192f 100%);
+        background-color: #0a192f;
     }
     </style>
     """
 
 # ==========================================
-# 3. UI STYLE
+# UI STYLE
 # ==========================================
 ui_style = """
 <style>
@@ -85,25 +85,6 @@ ui_style = """
 html, body, [class*="css"] {
     font-family: 'Poppins', sans-serif;
     color: #ccd6f6;
-}
-
-/* Container Utama */
-.block-container {
-    background-color: rgba(17, 34, 64, 0.2);
-    backdrop-filter: blur(12px);
-    border-radius: 20px;
-    padding: 3rem 2rem !important;
-    border: 1px solid rgba(100, 255, 218, 0.08);
-    max-width: 900px;
-}
-
-h1 {
-    font-weight: 700;
-    background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-align: center;
-    letter-spacing: 1px;
 }
 
 .image-left-style {
@@ -119,27 +100,8 @@ h1 {
     font-weight: 700;
     padding: 15px 40px;
     border-radius: 50px;
-    display: inline-block;
     color: white;
     margin: 10px 0;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-}
-
-.result-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 30px;
-}
-
-.result-card {
-    background: rgba(17, 34, 64, 0.5);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 20px 25px;
-    width: 100%;
-    max-width: 400px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 </style>
 """
@@ -148,21 +110,13 @@ st.markdown(background_css, unsafe_allow_html=True)
 st.markdown(ui_style, unsafe_allow_html=True)
 
 # ==========================================
-# 4. STEMMER
-# ==========================================
-try:
-    FACTORY = StemmerFactory()
-    STEMMER = FACTORY.create_stemmer()
-except:
-    STEMMER = None
-
-# ==========================================
-# 5. PREPROCESSING
+# PREPROCESSING
 # ==========================================
 @st.cache_data
 def text_preprocessing(text):
     if not isinstance(text, str):
         return ""
+
     text = text.lower()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text)
     text = re.sub(r'@\w+', '', text)
@@ -176,7 +130,7 @@ def text_preprocessing(text):
     return text.strip()
 
 # ==========================================
-# 6. LOAD MODEL
+# LOAD MODEL
 # ==========================================
 @st.cache_resource
 def load_resources():
@@ -189,39 +143,34 @@ def load_resources():
         }
         return vectorizer, models
     except Exception as e:
-        st.error(f"Gagal memuat sistem: {e}")
+        st.error(f"Gagal memuat model: {e}")
         return None, None
 
 VECTORIZER, MODELS = load_resources()
 
 # ==========================================
-# 7. UI UTAMA
+# UI
 # ==========================================
-st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
-st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
 
 if VECTORIZER is None or MODELS is None:
-    st.error("⚠️ Sistem gagal dimuat.")
     st.stop()
 
-with st.container():
-    col_img, col_input = st.columns([1, 2])
+col_img, col_input = st.columns([1, 2])
 
-    with col_img:
-        if EXTRA_IMAGE_B64:
-            st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
-            st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.info("Gambar tambahan tidak ditemukan.")
+with col_img:
+    if EXTRA_IMAGE_B64:
+        st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
+        st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_input:
-        model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
-        input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
-        analyze_button = st.button("🔍 ANALISIS SEKARANG")
+with col_input:
+    model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
+    input_text = st.text_area("Masukkan komentar", height=100)
+    analyze_button = st.button("🔍 Analisis")
 
 # ==========================================
-# 8. PREDIKSI
+# PREDIKSI
 # ==========================================
 if analyze_button:
     if input_text.strip() == "":
@@ -229,32 +178,12 @@ if analyze_button:
     else:
         clean_text = text_preprocessing(input_text)
         X = VECTORIZER.transform([clean_text])
-
         model = MODELS[model_choice]
-        prediction = model.predict(X)[0]
+        prediction = model.predict(X)[0].lower()
 
-        if prediction.lower() == "positif":
-            badge_bg = "linear-gradient(90deg, #059669, #34d399)"
-            icon = "😊"
-            label = "POSITIF"
-        elif prediction.lower() == "negatif":
-            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
-            icon = "😡"
-            label = "NEGATIF"
+        if prediction == "positif":
+            st.success("✅ POSITIF")
+        elif prediction == "negatif":
+            st.error("❌ NEGATIF")
         else:
-            badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
-            icon = "😐"
-            label = "NETRAL"
-
-        st.markdown(
-            f"""
-            <div class="result-container">
-                <div class="result-card">
-                    <div class="sentiment-badge" style="background: {badge_bg};">
-                        {icon} &nbsp; {label}
-                    </div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            st.info("⚪ NETRAL")

@@ -179,7 +179,6 @@ def text_preprocessing(text):
     text = re.sub(r'\d+', '', text)
     text = text.translate(str.maketrans('', '', string.punctuation))
     if STEMMER:
-        # Proses Stemming (kata "kerjanya" akan menjadi "kerja", "buruk" menjadi "buruk")
         text = STEMMER.stem(text)
     return text.strip()
 
@@ -315,9 +314,26 @@ SAMPLE_COMMENTS_DPR = [
     'Pantasan Rakyat pada marah kaya gini 😭😭😭'
 ]
 
+# ==========================================
+# 4️⃣ FUNGSI KOREKSI MANUAL
+# ==========================================
+def force_correct_prediction(clean_text: str, prediction: str) -> str:
+    """
+    Fungsi ini memeriksa keberadaan kata-kata negatif yang sangat kuat 
+    (setelah distemming) dan mengoreksi prediksi menjadi 'negatif' 
+    jika model ML memberikan hasil yang salah (misalnya Positif).
+    """
+    STRONG_NEGATIVE_KEYWORDS = ['buruk', 'jelek', 'bobrok', 'korup', 'bobrol'] # Sesuaikan dengan kamus stemming Sastrawi
+
+    if prediction.lower() == 'positif':
+        # Cek apakah teks mengandung kata negatif yang sangat kuat
+        if any(keyword in clean_text for keyword in STRONG_NEGATIVE_KEYWORDS):
+            return 'Negatif (Koreksi Manual)'
+    
+    return prediction # Kembalikan prediksi asli jika tidak ada koreksi
 
 # ==========================================
-# 4️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
+# 5️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
 # ==========================================
 st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
@@ -349,25 +365,23 @@ with st.container():
         # Pilihan 1: Pilih dari 100 Komentar Sampel
         st.markdown("<p style='font-weight: 600; margin-bottom: 5px;'>Pilih Komentar Sampel (100 Data):</p>", unsafe_allow_html=True)
 
-        # st.selectbox menggunakan callback dan key untuk sinkronisasi state
         st.selectbox(
             label="Komentar Sampel",
             options=["-- ATAU KETIK SENDIRI DI BAWAH --"] + SAMPLE_COMMENTS_DPR,
-            key="selected_sample", # Key untuk menyimpan nilai di session state
-            on_change=update_input_from_selectbox, # Callback untuk mengisi text_area
+            key="selected_sample",
+            on_change=update_input_from_selectbox,
             label_visibility="collapsed"
         )
 
         # Pilihan 2: Input Manual
         st.markdown("<p style='font-weight: 600; margin-top: 15px; margin-bottom: 5px;'>Atau Ketik Komentar Sendiri di Sini:</p>", unsafe_allow_html=True)
 
-        # st.text_area terikat langsung ke st.session_state.current_input.
         input_text = st.text_area(
             label="Ketik Komentar",
             value=st.session_state.current_input, 
             placeholder="Ketik komentar di sini...",
             height=100,
-            key="current_input", # Key yang sama dengan Session State untuk 2-way binding
+            key="current_input",
             label_visibility="collapsed"
         )
 
@@ -375,41 +389,51 @@ with st.container():
 
 # Logika Hasil
 if analyze_button:
-    # Kita menggunakan nilai terbaru dari input_text yang terikat ke session state
     if st.session_state.current_input.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        # Proses Prediksi
+        # 1. Proses Prediksi ML
         clean_text = text_preprocessing(st.session_state.current_input)
-        
-        # --- TAMPILAN DEBUG (untuk melihat apa yang model lihat) ---
-        st.markdown("---")
-        st.markdown(f"**Teks yang dianalisis model (setelah *pre-processing*):**")
-        st.markdown(f'<div class="clean-text-box">{clean_text}</div>', unsafe_allow_html=True)
-        st.markdown("---")
-        # -------------------------------------------------------------
 
         if VECTORIZER is None or MODEL_TO_USE is None:
             st.error("⚠️ Analisis gagal: Model atau Vectorizer tidak tersedia.")
             st.stop()
 
         X = VECTORIZER.transform([clean_text])
-
-        prediction = MODEL_TO_USE.predict(X)[0]
-
-        # Styling Hasil
-        if prediction.lower() == "positif":
+        ml_prediction = MODEL_TO_USE.predict(X)[0]
+        
+        # 2. Koreksi Manual (untuk memperbaiki bias model)
+        final_prediction = force_correct_prediction(clean_text, ml_prediction)
+        
+        # 3. Styling Hasil
+        if 'koreksi' in final_prediction.lower():
+            # Jika dikoreksi, tampilkan sebagai negatif
+            label = "NEGATIF"
+            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
+            icon = "😡"
+            footer_text = "(Hasil dikoreksi secara manual karena mengandung kata negatif yang sangat kuat)."
+        elif final_prediction.lower() == "positif":
             badge_bg = "linear-gradient(90deg, #059669, #34d399)"
             icon = "😊"
             label = "POSITIF"
-        elif prediction.lower() == "negatif":
+            footer_text = "(Hasil dari model pembelajaran mesin)."
+        elif final_prediction.lower() == "negatif":
             badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
             icon = "😡"
             label = "NEGATIF"
-        else:
+            footer_text = "(Hasil dari model pembelajaran mesin)."
+        else: # Netral
             badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
             icon = "😐"
             label = "NETRAL"
+            footer_text = "(Hasil dari model pembelajaran mesin)."
+
+        # --- TAMPILAN DEBUG (Teks yang diproses) ---
+        st.markdown("---")
+        st.markdown(f"**Teks yang dianalisis model (setelah *pre-processing*):**")
+        st.markdown(f'<div class="clean-text-box">{clean_text}</div>', unsafe_allow_html=True)
+        st.markdown("---")
+        # -------------------------------------------------------------
 
         # Tampilkan Kartu Hasil (Teks model telah dihapus)
         st.markdown(f"""
@@ -419,6 +443,7 @@ if analyze_button:
                 <div class="sentiment-badge" style="background: {badge_bg};">
                     {icon} &nbsp; {label}
                 </div>
+                <small style='color: #94a3b8;'>{footer_text}</small>
             </div>
         </div>
         """, unsafe_allow_html=True)

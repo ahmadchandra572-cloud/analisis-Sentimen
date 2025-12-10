@@ -3,6 +3,7 @@ import joblib
 import re
 import string
 import base64
+import os
 
 # ==========================================
 # LOAD STEMMER (AMAN STREAMLIT CLOUD)
@@ -34,38 +35,40 @@ def get_base64_of_bin_file(file_path):
     except:
         return None
 
-# ✅ GUNAKAN GAMBAR DARI FOLDER "gamabr"
-BG_IMAGE_FILENAME = "gamabr/background.jpg"     
-BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
+# ==========================================
+# PATH BACKGROUND & IMAGE
+# ==========================================
+BG_IMAGE_FILENAME = "gamabr/background.jpg"   # ✅ background folder
+LEFT_IMAGE_FILENAME = "images.jpg"            # ✅ gambar kiri
 
-# ✅ GAMBAR SAMPING
-EXTRA_IMAGE_FILENAME = "images.jpg"
-EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
+BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
+LEFT_IMAGE_B64 = get_base64_of_bin_file(LEFT_IMAGE_FILENAME)
 
 # ==========================================
-# CSS BACKGROUND
+# DEBUG STREAMLIT
+# ==========================================
+st.write("📂 Path background:", BG_IMAGE_FILENAME)
+st.write("✅ File background ada?:", os.path.exists(BG_IMAGE_FILENAME))
+
+# ==========================================
+# CSS BACKGROUND (PALING STABIL)
 # ==========================================
 if BG_IMAGE_B64:
-    background_css = f"""
-    <style>
-    .stApp {{
-        background-image: 
-            linear-gradient(rgba(10, 25, 47, 0.40), rgba(10, 25, 47, 0.60)), 
-            url("data:image/jpeg;base64,{BG_IMAGE_B64}");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }}
-    </style>
-    """
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background: 
+                linear-gradient(rgba(10,25,47,0.50), rgba(10,25,47,0.70)),
+                url("data:image/jpeg;base64,{BG_IMAGE_B64}") no-repeat center center fixed;
+            background-size: cover;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 else:
-    background_css = """
-    <style>
-    .stApp {
-        background-color: #0a192f;
-    }
-    </style>
-    """
+    st.error("❌ Background gagal dimuat, cek path file.")
 
 # ==========================================
 # UI STYLE
@@ -87,8 +90,6 @@ html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6;
 }
 </style>
 """
-
-st.markdown(background_css, unsafe_allow_html=True)
 st.markdown(ui_style, unsafe_allow_html=True)
 
 # ==========================================
@@ -122,13 +123,13 @@ def load_resources():
         }
         return vectorizer, models
     except Exception as e:
-        st.error(f"Gagal memuat sistem: {e}")
+        st.error(f"Gagal memuat model: {e}")
         return None, None
 
 VECTORIZER, MODELS = load_resources()
 
 # ==========================================
-# UI
+# UI LAYOUT
 # ==========================================
 st.markdown("<h1 style='text-align:center;'>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
 
@@ -138,8 +139,8 @@ if VECTORIZER is None or MODELS is None:
 col_img, col_input = st.columns([1, 2])
 
 with col_img:
-    if EXTRA_IMAGE_B64:
-        st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
+    if LEFT_IMAGE_B64:
+        st.image(f"data:image/jpeg;base64,{LEFT_IMAGE_B64}", use_column_width=True)
 
 with col_input:
     model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))

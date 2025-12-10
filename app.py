@@ -5,9 +5,6 @@ import string
 import base64
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
-# IMPORT dari preprocessing.py ✅
-from preprocessing import full_preprocess, load_kamus
-
 # ==========================================
 # 0️⃣ KONFIGURASI HALAMAN & ENCODER
 # ==========================================
@@ -130,26 +127,53 @@ st.markdown(background_css, unsafe_allow_html=True)
 st.markdown(ui_style, unsafe_allow_html=True)
 
 # ==========================================
-# 2️⃣ LOAD RESOURCE
+# 2️⃣ PREPROCESSING & RESOURCE LOADING
 # ==========================================
+try:
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
+except:
+    STEMMER = None
+
+@st.cache_data
+def text_preprocessing(text):
+    if not isinstance(text, str):
+        return ""
+    text = text.lower()
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
+    text = re.sub(r'@\w+', '', text)
+    text = re.sub(r'\d+', '', text)
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    text = text.encode('ascii', 'ignore').decode('ascii')
+    if STEMMER:
+        text = STEMMER.stem(text)
+    return text.strip()
+
 @st.cache_resource
 def load_resources():
-    vectorizer = joblib.load("tfidf_vectorizer.pkl")
-    models = {
-        "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
-        "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
-        "SVM": joblib.load("model_SVM_GamGwo.pkl")
-    }
-    return vectorizer, models
+    try:
+        vectorizer = joblib.load("tfidf_vectorizer.pkl")
+        models = {
+            "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
+            "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
+            "SVM": joblib.load("model_SVM_GamGwo.pkl")
+        }
+        return vectorizer, models
+    except Exception as e:
+        st.error(f"Gagal memuat sistem: {e}")
+        return None, None
 
 VECTORIZER, MODELS = load_resources()
-KAMUS = load_kamus()  # ✅ Load kamus dari preprocessing.py
 
 # ==========================================
-# 3️⃣ UI UTAMA
+# 3️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
 # ==========================================
 st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
+
+if VECTORIZER is None or MODELS is None:
+    st.error("⚠️ Sistem gagal dimuat.")
+    st.stop()
 
 with st.container():
     col_img, col_input = st.columns([1, 2])
@@ -168,16 +192,13 @@ with st.container():
         analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
 # ==========================================
-# 4️⃣ PREDIKSI
+# 4️⃣ HASIL PREDIKSI
 # ==========================================
 if analyze_button:
     if input_text.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        # ✅ PAKAI PREPROCESSING DARI preprocessing.py
-        clean_text = full_preprocess(input_text, KAMUS)
-
-        # ✅ TF-IDF TRANSFORM
+        clean_text = text_preprocessing(input_text)
         X = VECTORIZER.transform([clean_text])
 
         model = MODELS[model_choice]

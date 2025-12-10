@@ -15,13 +15,13 @@ st.set_page_config(
     layout="centered"
 )
 
+# --- FUNGSI UTILITY ---
 def get_base64_of_bin_file(file_path):
     try:
         with open(file_path, 'rb') as f:
             data = f.read()
         return base64.b64encode(data).decode()
     except FileNotFoundError:
-        # st.error(f"File not found: {file_path}") # Jangan tampilkan error di awal
         return None
 
 # Gambar Utama (Background) dan Gambar Tambahan
@@ -32,21 +32,17 @@ EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
 
 
 # ==========================================
-# 1️⃣ CSS STYLE INJECTION (Minimalis, Fokus, Background Lebih Jelas)
+# 1️⃣ CSS STYLE INJECTION
 # ==========================================
-# --- Background Image + Overlay ---
 if BG_IMAGE_B64:
     background_css = f"""
     <style>
     .stApp {{
         background-image: 
-            /* Layer 2: Overlay Biru Dongker (40%-60% opacity) */
             linear-gradient(rgba(10, 25, 47, 0.40), rgba(10, 25, 47, 0.60)), 
-            /* Layer 3: Pola Grid Halus */
             repeating-linear-gradient(
                 45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px
             ),
-            /* Base Image */
             url("data:image/jpeg;base64,{BG_IMAGE_B64}");
             
         background-size: cover;
@@ -66,7 +62,6 @@ else:
     </style>
     """
 
-# --- UI Styling (Fokus pada Badge) ---
 ui_style = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
@@ -80,7 +75,7 @@ html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6;
     border-radius: 20px;
     padding: 3rem 2rem !important;
     border: 1px solid rgba(100, 255, 218, 0.08); 
-    max-width: 900px; /* Melebarkan untuk kolom gambar */
+    max-width: 900px; 
 }
 
 h1 {
@@ -126,36 +121,6 @@ h1 {
     margin: 10px 0;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
-
-/* Styling untuk Expander Kata Kunci */
-.st-emotion-cache-p5m8c2 { /* Target Streamlit expander header */
-    background: rgba(100, 255, 218, 0.1) !important;
-    border-radius: 10px !important;
-    padding: 10px !important;
-    border: none !important;
-}
-.sentiment-example-box {
-    padding: 10px;
-    border-radius: 5px;
-    margin-bottom: 5px;
-    font-size: 13px;
-    color: #e0e7ff;
-}
-.positive { background-color: rgba(52, 211, 153, 0.1); border-left: 4px solid #34d399; }
-.negative { background-color: rgba(248, 113, 113, 0.1); border-left: 4px solid #f87171; }
-.neutral { background-color: rgba(100, 116, 139, 0.1); border-left: 4px solid #94a3b8; }
-
-/* Gaya untuk Algoritma yang Dipilih */
-.chosen-algo {
-    font-size: 16px;
-    font-weight: 600;
-    color: #64ffda;
-    background-color: rgba(100, 255, 218, 0.05);
-    padding: 8px 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(100, 255, 218, 0.2);
-}
 </style>
 """
 
@@ -170,7 +135,6 @@ try:
     FACTORY = StemmerFactory()
     STEMMER = FACTORY.create_stemmer()
 except:
-    # Jika Sastrawi tidak ada (misalnya di lingkungan tertentu), gunakan None
     STEMMER = None
 
 @st.cache_data
@@ -181,8 +145,6 @@ def text_preprocessing(text):
     text = re.sub(r'@\w+', '', text)
     text = re.sub(r'\d+', '', text)
     text = text.translate(str.maketrans('', '', string.punctuation))
-    # Baris ini dihilangkan/dikomentari karena mengganggu karakter Indonesia:
-    # text = text.encode('ascii', 'ignore').decode('ascii') 
     if STEMMER:
         text = STEMMER.stem(text)
     return text.strip()
@@ -206,8 +168,6 @@ VECTORIZER, MODELS = load_resources()
 # ==========================================
 # 3️⃣ KONFIGURASI ALGORITMA SATU (GABUNGAN)
 # ==========================================
-# Kita pilih model terbaik (misalnya Random Forest) sebagai model utama.
-# Ini mensimulasikan "gabungan" di mana hanya satu hasil terbaik yang digunakan.
 CHOSEN_MODEL_NAME = "Random Forest"
 if MODELS and CHOSEN_MODEL_NAME in MODELS:
     MODEL_TO_USE = MODELS[CHOSEN_MODEL_NAME]
@@ -216,10 +176,10 @@ else:
 
 
 # ==========================================
-# 3.5️⃣ DAFTAR 100 KOMENTAR SAMPEL (dari youtube-GaJI-dpr.csv)
+# 3.5️⃣ DAFTAR 100 KOMENTAR SAMPEL (VERSI SAYA/DATA ANDA)
 # ==========================================
-# Daftar ini mencakup komentar yang diklasifikasikan secara sederhana sebagai
-# Positif (33), Negatif (33), dan Netral/Lainnya (34).
+# Daftar ini mencakup 100 komentar yang telah diseleksi secara seimbang
+# dari data youtube-GaJI-dpr.csv (sekitar 33 Positif, 33 Negatif, 34 Netral/Lainnya).
 SAMPLE_COMMENTS_DPR = [
     'Dpr jancok dpr tidak adil dasar',
     'Setuju gaji anggota dewan umr supaya orang tidak ambisisius berlomba lomba untuk menjadi anggota dewan karena tergiur gaji besar',
@@ -247,16 +207,16 @@ SAMPLE_COMMENTS_DPR = [
     'Rakyat.kelaparan.pak tolong kasih pekerjaan.yg layak.',
     'Mantap lanjutkan',
     'Apa sih fungsi DPR MPR? Yang di rasakan adalah mereka seperti preman berkumpul di satu tempat.\n\nTidak ada rakyat yang benar-benar di wakili oleh mereka. Laknat lah kalian pemakaman uang rakyat secara zalim lewat jalur Pajak. Semoga kelak perut kalian kenyang akan minum air nanah didalam nerakah Jahanam.\n\nRakyat di zalimi dengan kebijakan, lapor Kapolri hanya berakhir dengan penjarah beberapa hari karena hukum di Indonesia adalah hukum yang tidak pernah adil. Maka mari kita laporkan mereka kepada Allah SWT atas kebijakannya hingga tak ada ampunan mereka dan mendekam lah mereka di dasar Jahanam yang panas dan mendidih.',
-    'Koplkkkk. Mau tunjang rumah tunjangan apapun tidak adil buat rakyat kecil. Kompen sasi rumah buat rakyat 15 jt. Itu juga berupa barang akhit nya gak tuntas karna modelnya rmhnua dah di atur. Dan harus nombok..lieuuuurrrrr',
-    'SI EKO PATRIO DAN GEROMBOLANYA ANGGOTA DPR PALING KOPLAK PASTI RAKYAT YG MEMILIH DIA NYESEL SEGEDE GUNUNG. GAK ADA DPR NEGARA TETAP JALAN ASAL ORANGNYA BENER, BUBARKAN DPR..\nSETUJU👍👍😁',
+    'Koplkkkk. Mau tunjang rumah tunjangan apapun tidak adil buat rakyat kecil. Kompen sasi rumah buat rakyat 15 jt.  Itu juga berupa barang akhit nya gak tuntas karna modelnya rmhnua dah di atur. Dan harus nombok..lieuuuurrrrr',
+    'SI EKO PATRIO DAN GEROMBOLANYA ANGGOTA DPR PALING KOPLAK PASTI RAKYAT YG MEMILIH DIA NYESEL SEGEDE GUNUNG.  GAK ADA DPR NEGARA TETAP JALAN ASAL ORANGNYA BENER, BUBARKAN DPR..\nSETUJU👍👍😁',
     'Tunjangan rumah kata mereka yaaaaa terserahlaaaa,kalian berjoget kami nenontonkalian. Semoga yg maha adil allah swt melaknat kalian.para pemimpin yang tidak adil aamiin yrbl almin',
     'Ga adil klu cuman anggota DPR yg naik guru tuh harusnya yg dinaikan mana janjinya pak presiden naikan gaji guru katanya.🙏',
     'Yang setuju revolusi ,mari kita suarakan revolusi kita ulangan tragedi 97 hanya iti jalan keluaranya',
-    'Tunggu saja Revolusi itu akan terjadi ada waktu dan saatnya Rakyat Indonesia bergerak. Nikmatilh waktu kalian sebelum waktu itu habis dan datang. \n" LUPA BERKACA 98 "\nApa kabar Jendral koalisi koruptor janji masih ingat ? Rakyat Indonesia yang akan mengingatkan jika lupa\nBaru kali ini bangsa Indonesia salah memilih presiden karena merasa kasihan dan benar hasilnya 0 besar. \nAntri Gas Lpg hingga mat*\nMinyak langkah beras oplosan\nPupuk susah\nPengangguran menurun ekonomi Indonesia tumbuh kata siapa ? \nKoruptor bebas\nRekening dan Tanah nganggur dapat disita\nGaji DPR 100JT \nGaji Guru ? 300rb/bulan\nAnak presiden terbaik Indonesia Gibran hanya duduk lemas miris sedih saat melihat koalisi koruptor omon omon berjoget dengan disahkannya gaji 100JT. \nTernyata Tukang Kayu lebih baik dan berani tidak pernah tunduk dengan mak lampir dan koalisi koruptor. \n\n2029 atau sebelumnya wajib ganti presiden.',
+    'Tunggu saja Revolusi itu akan terjadi ada waktu dan saatnya Rakyat Indonesia bergerak. Nikmatilh waktu kalian sebelum waktu itu habis dan datang. \n" LUPA BERKACA 98 "\nApa kabar Jendral koalisi koruptor janji masih ingat ? Rakyat Indonesia yang akan mengingatkan jika lupa\nBaru kali ini bangsa Indonesia salah memilih presiden karena merasa kasihan dan benar  hasilnya 0 besar. \nAntri Gas Lpg hingga mat*\nMinyak langkah beras oplosan\nPupuk susah\nPengangguran menurun ekonomi Indonesia tumbuh kata siapa ? \nKoruptor bebas\nRekening dan Tanah nganggur dapat disita\nGaji DPR 100JT \nGaji Guru ? 300rb/bulan\nAnak presiden terbaik Indonesia Gibran hanya duduk lemas miris sedih saat melihat koalisi koruptor omon omon berjoget dengan disahkannya gaji 100JT. \nTernyata Tukang Kayu lebih baik dan berani tidak pernah tunduk dengan mak lampir dan koalisi koruptor. \n\n2029 atau sebelumnya wajib ganti presiden.',
     'Gajih tidak naik aja orang masih banyak yang ingin jadi DPR apa lagi naik??\nJustru harus nya tunjangan nya di turunin agar jdi dpr ikhlas demi rakyat bukan demi gajih\nYg setuju like',
     'Rakyat kaya DPR miskin',
     'Kami rakyat miskin sangat setuju kalau ģaji dpr sama dgn gaji pns.',
-    'Joget2 gaji naik, sangat menyakitkan rakyat miskin dan sulit cari makan, sdg mereka di gaji dg uang rakyat.😮',
+    'Joget2 gaji naik, sangat menyakitkan rakyat miskin dan sulit cari makan, sdg mereka di gaji   dg uang rakyat.😮',
     'begini kah hidup di indonesia dan begini kah yang diingin kan oleh para leluhur warga menangis karena kemeskinan sedangkan dpr yang sudah kaya tambah kaya dan koruptor di negara ini semakin banyak apa kah benar yang dibilang oleh prabowo bahwa indonesia pada tahun 2030 akan bubar???',
     'jangan makan uang rakyat mikirin orang-orang yang nggak mampu yang miskin yang mulung dan lain-lain jangan mikirin uang pribadi mikirin orang-orang di bawah jangan makan uang haram',
     'Cokk aku sebagai rakyat tidak ridho gaji anggota dewan dinaikkan begitu juga konpensasi rumah juga dinaikkan saya tidak ridho dunia akhirat, rumah anggota dewan bagus bagus kaya² seperti Bramasta, eko patrio harusnya yang dijadikan anggota dewan itu orang miskin insyaallah jujur baik akhlaknya tidak semena mena.',
@@ -265,25 +225,25 @@ SAMPLE_COMMENTS_DPR = [
     'tenyata ge baru tau arti APK (Anjayyy Pemerintah Korupsi)',
     'CUIHHH NAJIS JOGED2 DI ATAS PENDERITAAN RAKYAT,,NEGARA BOBROK MIRIS MIRISS...',
     'Pejabat makin kaya, Masyarakatnya mkin pada miskin.. Ampun parah ya Allah😔',
-    'tidak punya malu, di saat rakyat menderita di cekik bayar pajak, mereka malah joget² dapat kenaikan gaji... terlaknat kalian semua yang menari nari di atas penderitaan rakyat',
+    'tidak punya malu,  di saat rakyat menderita di cekik bayar pajak, mereka malah joget² dapat kenaikan gaji... terlaknat kalian semua yang menari nari di atas penderitaan rakyat',
     'itulah anggota dpr pintar bersilat lidah, gaji di ganti nama menjadi tunjangan... banyak rakyat yg sehari makan cuma 1x bahkan ada yg tidak makan seharian, ini malah wakil nya joget2 senang dpt tunjangan 100jt/ bulan...\nnegeri apa coba ini... negara maju saja anggota dpr nya naik angkutan umum bukan naik alphard eh ini negara miskin anggota dpr nya ga ada yg naik angkutan umum...',
     'Bikin miskin rakyat aja n dewan...',
-    'Kami rakyat sangat kecewa sama DPR semoga pemilu berikutnya nggak ada yg milih mereka, semoga rakyat segera sadar...',
+    'Kami rakyat sangat kecewa sama DPR  semoga pemilu berikutnya nggak ada yg milih mereka, semoga rakyat segera sadar...',
     'Pikiran jelek sy bnr di naikan gaji dngn atas namakan kopensasi UANG rumah tinggl . Karna skrang kan segala bhn bakar mahal semua apa lagi bhn bakar buat makan',
-    'rakyat menangis,mbok ya lebih memikirkan nasib rakyat dari kalangan menengah k bawah ibu /bpk yg terhormat,masih sangat bnyak rakyat2 miskin kekurangan pangan,tidak ada tempat tinggal,kurang perhatian aparat tentang kesehatan,baru2 ini kasus almarhumah adek raya yg dari kluarga tidak mampu,harus khilangannyawa karena ribuan cacing bersarang d tubuh kecilny dan karena kurang perhatian dari aparat desa,menyedihkan sekali,..\ntolonglah pak/ibu lihat mereka yg sangat mmbutuhkan,bpk/ibu anggota DPRD yg bisa mkn enak,bisa tidur d tempat nyaman,tolong lihatlah mereka2 ini yg mkn pun susah walau cuma bisa mkn nasi saja sudah alhamdulillah,BPK/ibu apa tega menerima gaji yg besar sedangkan rakyat menangis,sedangkan gaji beliau jg berasal dari rakyat sedangkan rakyat menderita😢',
+    'rakyat menangis,mbok ya lebih memikirkan nasib rakyat dari kalangan menengah k bawah ibu /bpk yg terhormat,masih  sangat bnyak rakyat2 miskin kekurangan pangan,tidak ada tempat tinggal,kurang perhatian aparat tentang kesehatan,baru2 ini kasus almarhumah adek raya yg dari kluarga tidak mampu,harus khilangannyawa karena ribuan cacing bersarang d tubuh kecilny dan karena kurang perhatian dari aparat desa,menyedihkan sekali,..\ntolonglah pak/ibu lihat mereka yg sangat mmbutuhkan,bpk/ibu anggota DPRD yg bisa mkn enak,bisa tidur  d tempat nyaman,tolong lihatlah mereka2 ini yg mkn pun susah walau cuma bisa mkn nasi saja sudah alhamdulillah,BPK/ibu apa tega menerima gaji yg besar sedangkan rakyat menangis,sedangkan gaji beliau jg berasal dari rakyat sedangkan rakyat menderita😢',
     'Yang kaya makin kaya..yang miskin makin miskin',
     'Rombongan orang miskin, telor bensin rumah beras, minta ditunjangan, yang bayar rakyat lewat pajak, sedangkan lo semua nga kena pajak penghasil gw sebagai rakyat nga iklhas lahir batin semoga lo semua dapat balasan yang setimpal, aamiin',
     'kenaikan tunjangan anggota dpr dibayar dengan menaikan pajak yg semakin mencekik rakyat...... BIADAP MUKA2 ANGGOTA DPR RI GAK PUNYA MALU',
-    'RAKYAT SANGAT KESULITAN BUAT BELI BERAS, EHH ANGOTA DPR MALAH DAPAT TUNJANGAN BERAS, SANGAT MENYEDIHKAN. RAKYAT BEGITU MISKINNYA. MALAH TUNJANGAN BERAS NYA LUAR BIASA, ANGOTA DPR ADA SUAMI ISTRI. BAYANGKAN TUNJANGAN BERAS. TUNGAN RUMAH. TUNJANGAN LISTRIK. TUNJANGAN SALON. POKOKNYA PULUHAN TUNJANGAN. TUNJANGAN TIAP RAPAT. TUNJANGAN KE DAERAH. BELUM LAGI KELUAR NEGERU. POKOKNYA SEMUA KERJA CUMAN URUSAN DUIT. JADI RAKYAT INDONESI YANG BISA DIKATAKAN LEBIH SEPAROH MISKIN , JANGAN BERHARAP SEJAHTRA.',
+    'RAKYAT SANGAT KESULITAN BUAT BELI BERAS, EHH ANGOTA DPR MALAH DAPAT TUNJANGAN BERAS,  SANGAT MENYEDIHKAN. RAKYAT BEGITU MISKINNYA. MALAH TUNJANGAN BERAS NYA LUAR BIASA, ANGOTA DPR ADA SUAMI ISTRI. BAYANGKAN TUNJANGAN BERAS. TUNGAN RUMAH. TUNJANGAN LISTRIK. TUNJANGAN SALON.  POKOKNYA PULUHAN TUNJANGAN. TUNJANGAN TIAP RAPAT. TUNJANGAN KE DAERAH. BELUM LAGI KELUAR NEGERU.  POKOKNYA SEMUA KERJA CUMAN URUSAN DUIT. JADI RAKYAT INDONESI YANG BISA DIKATAKAN LEBIH SEPAROH MISKIN , JANGAN BERHARAP SEJAHTRA.',
     'Yg kaya makin kaya yg miskin makin miskin itulah negara kita Indonesa karna harta kekayaan negri ini hanya d rasakan para elit anggota dewan rayat sisa g mungkin rayat bisa subur makmur klo para pejabatnya g mau Deket sama rakyatnya',
     'Sementara rakyat sibuk tiap hari dari pagi sampai malam peras keringat banting tulang cuma buat mencari sesuap nasi.\n\nitu rakyat menengah ke bawah Rakyat miskin lagi sedih Sedihnya berjuang terhadap hidupnya terhadap keluarganya Sedangkan anda joget joget di gedung sana.\n\nKetidakpedulian yang dirasakan oleh masyarakat yan, erjuang untuk memenuhi kebutuhan dasar hidupnya, sementara pihak lain terlihat menikmati kemewahan dan kesenangan tanpa memikirkan kesulitan rakyat.\n\nKita bubarin aja dpr masak kita satu indonesia kalah sama satu gedung.\n\nIndonesia tanpa DPR akan tetap baik-baik saja, camkan itu',
     'Mental bobrok pada di jadikan anggota dewan\n...lebih tepatnya mereka itu cuma makan gajih buta\n..percumah negara menggelontorkan dana tiap bulan buat ngasih gajih ke mereka.....',
     'Bubar kn DPR penipu ranya ngk ada gunanya',
-    'Negara konoha benar benar negara bobrok yang kerja berat keringat sampe kelubang pantat gaji cuman sekian puluh ribu perak',
+    'Negara konoha benar benar negara bobrok yang kerja berat  keringat sampe kelubang pantat gaji cuman sekian puluh ribu perak',
     'DPR enak pa naik gaji saya warga miskin kesusahan jualan aja sepi barang sembako pada naik ,',
     'Gaji banyak insaalloh musibanya jugak banya soalnya menyangkut masarakat banyak ygsengsara orang miskin pasti doanya dikabulkan oleh alloh amin',
     'Yang terekam lagi joged harusnya malu sak malu2nya.. dilihat anak, keluarga, kerabat dan tetangga dirumah..',
-    'Wah tambah enak hidup ny PR wakil rkyt, hidupny sngt trjamin, yg ky mkn ky, yg miskin kckik msalh ekonomi yg smkin srba mhl, utang negara bnyk bangt, wahai PR penguasa negri Indonesia jdlh pr pemimpin yg bijaksana,brnts PR korupsi dngn bnr',
+    'Wah tambah enak hidup ny PR wakil rkyt, hidupny sngt trjamin, yg ky mkn ky, yg miskin  kckik msalh ekonomi yg smkin srba mhl, utang negara bnyk bangt, wahai PR penguasa negri Indonesia jdlh pr pemimpin yg bijaksana,brnts PR korupsi dngn bnr',
     'Suatu malam, Umar bin Khattab r.a. keluar sendirian untuk memantau keadaan rakyatnya. Ia melihat ada seorang ibu bersama anak-anaknya di dalam tenda, mereka kelaparan. Sang ibu merebus air, pura-pura memasak agar anak-anaknya tenang dan tertidur, padahal sebenarnya tidak ada makanan.\n\nMelihat hal itu, Umar menangis dan segera kembali ke Baitul Mal. Ia meminta penjaga mengambilkan gandum dan minyak. Sang penjaga menawarkan untuk mengangkatkan barang itu, tetapi Umar menolak dan berkata:\n\n> “Apakah engkau mau memikul dosaku di hari kiamat?”\n\n\n\nMaka Umar sendiri yang memikul karung gandum itu di punggungnya. Ia membawanya ke tenda ibu tadi, lalu memasakkan sendiri makanan untuk keluarga miskin itu hingga anak-anak kenyang dan tertawa. Umar duduk menunggu sampai wajah mereka berseri-seri, barulah ia pulang dengan tenang.\n\nKami butuh wakil rakyat yang punya Mental seperti itu, tapi sayang, yg kita dapat malah sebaliknya,.. "wakil" yang tidak mewakili rakyat,.. 😑, bahkan cenderung mementingkan kebutuhan dan keinginan mereka sendiri, ya Allah, perilaku mereka menunjukan seolah mereka tidak takut akan apa yang kelak menimpa mereka di hari perhitungan',
     'Menari di atas penderitaan rakyat miskin',
     'Fungsi DPR apa sih . Masyarakat diluaran sana masih bnyak yg kekurangan dan harusnya pejabat malu rakyat nya kebanyakan memilih jd babu dinegara org pdhal Indonesia itu kaya akan sumber alam .',
@@ -335,7 +295,6 @@ if VECTORIZER is None or MODEL_TO_USE is None:
     st.stop()
 
 # --- BLOK CONTOH KATA (Data Keywords Didefinisikan tanpa Ditampilkan) ---
-# Kata Kunci (Didefinisikan di sini)
 positive_words = ["mantap", "bagus", "sukses", "hebat", "terbaik", "cocok", "adil", "bijak", "bersyukur"]
 negative_words = ["tolak", "gagal", "rugi", "miskin", "korupsi", "mahal", "bodoh", "malu", "kecewa"]
 neutral_words = ["rapat", "usulan", "pimpinan", "komisi", "kebijakan", "anggaran", "membahas", "jakarta", "sidang"]
@@ -366,7 +325,7 @@ with st.container():
         # Pilihan 2: Input Manual (diberi nilai default dari pilihan di atas)
         st.markdown("<p style='font-weight: 600; margin-top: 15px; margin-bottom: 5px;'>Atau Ketik Komentar Sendiri di Sini:</p>", unsafe_allow_html=True)
         
-        # Jika pengguna memilih sampel, sampel tersebut akan menjadi nilai default di text_area.
+        # Logika untuk mengatur nilai default text_area
         initial_value = ""
         if selected_text != "-- ATAU KETIK SENDIRI DI BAWAH --":
             initial_value = selected_text

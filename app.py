@@ -3,22 +3,13 @@ import joblib
 import re
 import string
 import base64
-import pandas as pd
-import os
-
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-from preprocessing import (
-    load_kamus,
-    remove_emoji,
-    remove_symbols,
-    remove_numbers,
-    remove_username,
-    remove_url,
-    remove_html
-)
+
+# ✅ TAMBAHAN: Import preprocessing.py
+from preprocessing import full_preprocess, load_kamus
 
 # ==========================================
-# 1. PAGE CONFIG
+# 0️⃣ KONFIGURASI HALAMAN & ENCODER
 # ==========================================
 st.set_page_config(
     page_title="Analisis Sentimen DPR",
@@ -26,92 +17,143 @@ st.set_page_config(
     layout="centered"
 )
 
-# ==========================================
-# 2. LOAD KAMUS
-# ==========================================
-KAMUS = load_kamus()
-
-# ==========================================
-# 3. IMAGE LOADER
-# ==========================================
 def get_base64_of_bin_file(file_path):
     try:
         with open(file_path, 'rb') as f:
-            return base64.b64encode(f.read()).decode()
-    except:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except FileNotFoundError:
         return None
 
-BG_IMAGE_B64 = get_base64_of_bin_file("gamabr.jpg")
-EXTRA_IMAGE_B64 = get_base64_of_bin_file("images.jpg")
+# Gambar Utama (Background)
+BG_IMAGE_FILENAME = "gamabr"
+BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
+
+# Gambar Tambahan (Sisi Kiri)
+EXTRA_IMAGE_FILENAME = "images.jpg"
+EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
 
 # ==========================================
-# 4. BACKGROUND & UI CSS
+# 1️⃣ CSS STYLE INJECTION
 # ==========================================
-background_css = f"""
+if BG_IMAGE_B64:
+    background_css = f"""
+    <style>
+    .stApp {{
+        background-image: 
+            linear-gradient(rgba(10, 25, 47, 0.40), rgba(10, 25, 47, 0.60)), 
+            repeating-linear-gradient(
+                45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px
+            ),
+            url("data:image/jpeg;base64,{BG_IMAGE_B64}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+    """
+else:
+    background_css = """
+    <style>
+    .stApp {
+        background-image: repeating-linear-gradient(45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px),
+            radial-gradient(circle at center, #112240 0%, #0a192f 100%);
+    }
+    </style>
+    """
+
+ui_style = """
 <style>
-.stApp {{
-    background-image: 
-        linear-gradient(rgba(10, 25, 47, 0.40), rgba(10, 25, 47, 0.60)),
-        url("data:image/jpeg;base64,{BG_IMAGE_B64}");
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-}}
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
-.block-container {{
-    background-color: rgba(17, 34, 64, 0.25);
+html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6; }
+
+.block-container {
+    background-color: rgba(17, 34, 64, 0.2); 
     backdrop-filter: blur(12px);
     border-radius: 20px;
-    padding: 3rem 2rem;
-}}
-.image-left-style {{
+    padding: 3rem 2rem !important;
+    border: 1px solid rgba(100, 255, 218, 0.08); 
+    max-width: 900px;
+}
+
+h1 {
+    font-weight: 700;
+    background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+
+.image-left-style {
     border-radius: 12px;
+    overflow: hidden;
+    margin-top: 15px;
     border: 3px solid #64ffda;
     box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
-}}
+}
+
+.sentiment-badge {
+    font-size: 28px;
+    font-weight: 700;
+    padding: 15px 40px;
+    border-radius: 50px;
+    display: inline-block;
+    color: white;
+    margin: 10px 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.result-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.result-card {
+    background: rgba(17, 34, 64, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px 25px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
 </style>
 """
+
 st.markdown(background_css, unsafe_allow_html=True)
+st.markdown(ui_style, unsafe_allow_html=True)
 
 # ==========================================
-# 5. STEMMER
+# 2️⃣ PREPROCESSING ASLI (TIDAK DIHAPUS)
 # ==========================================
-factory = StemmerFactory()
-stemmer = factory.create_stemmer()
+try:
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
+except:
+    STEMMER = None
 
-# ==========================================
-# 6. FULL PREPROCESSING PIPELINE
-# ==========================================
-def full_preprocessing(text):
-    original = text
-
-    teks = remove_emoji(text)
-    teks = remove_symbols(teks)
-    teks = remove_numbers(teks)
-    teks = remove_username(teks)
-    teks = remove_url(teks)
-    teks = remove_html(teks)
-
-    casefold = teks.lower()
-    words = casefold.split()
-
-    # Normalisasi
-    norm_words = [KAMUS.get(w, w) for w in words]
-    normalized = " ".join(norm_words)
-
-    # Stemming
-    stemmed = stemmer.stem(normalized)
-
-    return {
-        "original": original,
-        "cleaning": teks,
-        "case_folding": casefold,
-        "normalisasi": normalized,
-        "stemming": stemmed
-    }
+@st.cache_data
+def text_preprocessing(text):
+    if not isinstance(text, str):
+        return ""
+    text = text.lower()
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
+    text = re.sub(r'@\w+', '', text)
+    text = re.sub(r'\d+', '', text)
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    text = text.encode('ascii', 'ignore').decode('ascii')
+    if STEMMER:
+        text = STEMMER.stem(text)
+    return text.strip()
 
 # ==========================================
-# 7. LOAD TF-IDF & MODEL
+# 3️⃣ LOAD RESOURCES
 # ==========================================
 @st.cache_resource
 def load_resources():
@@ -125,82 +167,73 @@ def load_resources():
 
 VECTORIZER, MODELS = load_resources()
 
-# ==========================================
-# 8. UI TITLE
-# ==========================================
-st.markdown("<h1 style='text-align:center;'>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
+# ✅ TAMBAHAN: Load kamus dari preprocessing.py
+KAMUS = load_kamus()
 
 # ==========================================
-# 9. LAYOUT
+# 4️⃣ UI UTAMA
 # ==========================================
-col_img, col_input = st.columns([1, 2])
+st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
 
-with col_img:
-    if EXTRA_IMAGE_B64:
-        st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
-        st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+if VECTORIZER is None or MODELS is None:
+    st.error("⚠️ Sistem gagal dimuat.")
+    st.stop()
 
-with col_input:
-    model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
-    input_text = st.text_area("💬 Masukkan komentar:", height=120)
-    analyze_button = st.button("🔍 ANALISIS SEKARANG")
+with st.container():
+    col_img, col_input = st.columns([1, 2])
+
+    with col_img:
+        if EXTRA_IMAGE_B64:
+            st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
+            st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Gambar tambahan tidak ditemukan.")
+
+    with col_input:
+        model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
+        input_text = st.text_area("💬 Masukkan komentar:", placeholder="Ketik komentar di sini...", height=100)
+        analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
 # ==========================================
-# 10. PROCESS & RESULT
+# 5️⃣ PREDIKSI (PAKAI KODE LAMA + BARU)
 # ==========================================
 if analyze_button:
     if input_text.strip() == "":
-        st.warning("⚠️ Harap masukkan teks")
-        st.stop()
-
-    # Preprocessing
-    hasil = full_preprocessing(input_text)
-    X = VECTORIZER.transform([hasil["stemming"]])
-
-    model = MODELS[model_choice]
-    prediction = model.predict(X)[0]
-
-    # Badge
-    if prediction.lower() == "positif":
-        badge_bg = "linear-gradient(90deg, #059669, #34d399)"
-        icon = "😊"
-        label = "POSITIF"
-    elif prediction.lower() == "negatif":
-        badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
-        icon = "😡"
-        label = "NEGATIF"
+        st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
-        icon = "😐"
-        label = "NETRAL"
+        # ✅ PREPROCESSING LAMA (tetap ada)
+        clean_text_old = text_preprocessing(input_text)
 
-    # ==========================================
-    # 11. TABEL PREPROCESSING
-    # ==========================================
-    st.markdown("## 🔍 Hasil Preprocessing")
-    df_view = pd.DataFrame([{
-        "Teks Asli": hasil["original"],
-        "Cleaning": hasil["cleaning"],
-        "Case Folding": hasil["case_folding"],
-        "Normalisasi": hasil["normalisasi"],
-        "Stemming": hasil["stemming"]
-    }])
-    st.dataframe(df_view, use_container_width=True)
+        # ✅ PREPROCESSING BARU dari preprocessing.py
+        clean_text = full_preprocess(input_text, KAMUS)
 
-    # ==========================================
-    # 12. FINAL RESULT
-    # ==========================================
-    st.markdown(f"""
-    <div style="text-align:center;margin-top:30px;">
-        <div style="
-            background:{badge_bg};
-            padding:15px 40px;
-            border-radius:50px;
-            font-size:28px;
-            font-weight:bold;
-            color:white;">
-            {icon} {label}
+        # ✅ TF-IDF
+        X = VECTORIZER.transform([clean_text])
+
+        model = MODELS[model_choice]
+        prediction = model.predict(X)[0]
+
+        if prediction.lower() == "positif":
+            badge_bg = "linear-gradient(90deg, #059669, #34d399)"
+            icon = "😊"
+            label = "POSITIF"
+        elif prediction.lower() == "negatif":
+            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
+            icon = "😡"
+            label = "NEGATIF"
+        else:
+            badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
+            icon = "😐"
+            label = "NETRAL"
+
+        st.markdown(f"""
+        <div class="result-container">
+            <div class="result-card">
+                <div class="sentiment-badge" style="background: {badge_bg};">
+                    {icon} &nbsp; {label}
+                </div>
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)

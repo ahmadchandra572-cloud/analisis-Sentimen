@@ -223,29 +223,11 @@ if VECTORIZER is None or MODEL_TO_USE is None:
     st.error("⚠️ Sistem gagal dimuat atau model tidak ditemukan.")
     st.stop()
 
-# --- BLOK CONTOH KATA (Panduan) ---
-with st.expander("📚 Contoh Kata Kunci Sentimen (Panduan)", expanded=False):
-    col_pos, col_neg, col_net = st.columns(3)
-
-    # Kata Kunci
-    positive_words = ["mantap", "bagus", "sukses", "hebat", "terbaik", "cocok", "adil", "bijak", "bersyukur"]
-    negative_words = ["tolak", "gagal", "rugi", "miskin", "korupsi", "mahal", "bodoh", "malu", "kecewa"]
-    neutral_words = ["rapat", "usulan", "pimpinan", "komisi", "kebijakan", "anggaran", "membahas", "jakarta", "sidang"]
-
-    with col_pos:
-        st.markdown("<h4 style='color: #34d399;'>POSITIF</h4>", unsafe_allow_html=True)
-        for word in positive_words:
-            st.markdown(f'<div class="sentiment-example-box positive">✅ {word}</div>', unsafe_allow_html=True)
-    
-    with col_neg:
-        st.markdown("<h4 style='color: #f87171;'>NEGATIF</h4>", unsafe_allow_html=True)
-        for word in negative_words:
-            st.markdown(f'<div class="sentiment-example-box negative">❌ {word}</div>', unsafe_allow_html=True)
-    
-    with col_net:
-        st.markdown("<h4 style='color: #94a3b8;'>NETRAL</h4>", unsafe_allow_html=True)
-        for word in neutral_words:
-            st.markdown(f'<div class="sentiment-example-box neutral">⚪ {word}</div>', unsafe_allow_html=True)
+# --- BLOK CONTOH KATA (Data Keywords Didefinisikan tanpa Ditampilkan) ---
+# Kata Kunci (Didefinisikan di sini)
+positive_words = ["mantap", "bagus", "sukses", "hebat", "terbaik", "cocok", "adil", "bijak", "bersyukur"]
+negative_words = ["tolak", "gagal", "rugi", "miskin", "korupsi", "mahal", "bodoh", "malu", "kecewa"]
+neutral_words = ["rapat", "usulan", "pimpinan", "komisi", "kebijakan", "anggaran", "membahas", "jakarta", "sidang"]
 # ---------------------------------------------
 
 
@@ -262,7 +244,6 @@ with st.container():
              st.info("Gambar tambahan tidak ditemukan.")
 
     with col_input:
-        # Pilihan Algoritma dihapus dari sini.
         
         input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
         analyze_button = st.button("🔍 ANALISIS SEKARANG")

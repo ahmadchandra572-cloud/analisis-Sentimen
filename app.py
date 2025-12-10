@@ -18,15 +18,21 @@ st.set_page_config(
 # --- FUNGSI UTILITY ---
 def get_base64_of_bin_file(file_path):
     try:
+        # Perhatian: Fungsi ini akan gagal jika file 'gamabr' atau 'images.jpg'
+        # tidak ditemukan di jalur yang benar (misalnya folder root deployment).
         with open(file_path, 'rb') as f:
             data = f.read()
         return base64.b64encode(data).decode()
     except FileNotFoundError:
+        # Jika file tidak ditemukan, kembalikan None, dan CSS background akan menggunakan fallback.
         return None
 
 # Gambar Utama (Background) dan Gambar Tambahan
 BG_IMAGE_FILENAME = "gamabr"
 EXTRA_IMAGE_FILENAME = "images.jpg"
+
+# PERBAIKAN: Memastikan BG_IMAGE_B64 didefinisikan dengan memanggil fungsi
+BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
 
 
@@ -177,7 +183,6 @@ else:
 # ==========================================
 # 3.5️⃣ DAFTAR 100 KOMENTAR SAMPEL
 # ==========================================
-# Daftar 100 komentar dari data Anda, dicampur untuk demonstrasi (Positif, Negatif, Netral).
 SAMPLE_COMMENTS_DPR = [
     'Dpr jancok dpr tidak adil dasar',
     'Setuju gaji anggota dewan umr supaya orang tidak ambisisius berlomba lomba untuk menjadi anggota dewan karena tergiur gaji besar',
@@ -333,6 +338,7 @@ with st.container():
             value=initial_value,
             placeholder="Ketik komentar di sini...",
             height=100,
+            key="user_input_area", # Tambahkan key untuk menghindari bug Streamlit
             label_visibility="collapsed"
         )
 
@@ -345,6 +351,12 @@ if analyze_button:
     else:
         # Proses Prediksi
         clean_text = text_preprocessing(input_text)
+        
+        # Cek apakah vectorizer dan model berhasil dimuat
+        if VECTORIZER is None or MODEL_TO_USE is None:
+            st.error("⚠️ Analisis gagal: Model atau Vectorizer tidak tersedia.")
+            st.stop()
+            
         X = VECTORIZER.transform([clean_text])
 
         # Model yang digunakan adalah model yang sudah ditetapkan di awal (MODEL_TO_USE)

@@ -5,7 +5,7 @@ import string
 import base64
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
-# ✅ TAMBAHAN: Import preprocessing.py
+# IMPORT dari preprocessing.py ✅
 from preprocessing import full_preprocess, load_kamus
 
 # ==========================================
@@ -130,30 +130,7 @@ st.markdown(background_css, unsafe_allow_html=True)
 st.markdown(ui_style, unsafe_allow_html=True)
 
 # ==========================================
-# 2️⃣ PREPROCESSING ASLI (TIDAK DIHAPUS)
-# ==========================================
-try:
-    FACTORY = StemmerFactory()
-    STEMMER = FACTORY.create_stemmer()
-except:
-    STEMMER = None
-
-@st.cache_data
-def text_preprocessing(text):
-    if not isinstance(text, str):
-        return ""
-    text = text.lower()
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
-    text = re.sub(r'@\w+', '', text)
-    text = re.sub(r'\d+', '', text)
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    text = text.encode('ascii', 'ignore').decode('ascii')
-    if STEMMER:
-        text = STEMMER.stem(text)
-    return text.strip()
-
-# ==========================================
-# 3️⃣ LOAD RESOURCES
+# 2️⃣ LOAD RESOURCE
 # ==========================================
 @st.cache_resource
 def load_resources():
@@ -166,19 +143,13 @@ def load_resources():
     return vectorizer, models
 
 VECTORIZER, MODELS = load_resources()
-
-# ✅ TAMBAHAN: Load kamus dari preprocessing.py
-KAMUS = load_kamus()
+KAMUS = load_kamus()  # ✅ Load kamus dari preprocessing.py
 
 # ==========================================
-# 4️⃣ UI UTAMA
+# 3️⃣ UI UTAMA
 # ==========================================
 st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
-
-if VECTORIZER is None or MODELS is None:
-    st.error("⚠️ Sistem gagal dimuat.")
-    st.stop()
 
 with st.container():
     col_img, col_input = st.columns([1, 2])
@@ -197,19 +168,16 @@ with st.container():
         analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
 # ==========================================
-# 5️⃣ PREDIKSI (PAKAI KODE LAMA + BARU)
+# 4️⃣ PREDIKSI
 # ==========================================
 if analyze_button:
     if input_text.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        # ✅ PREPROCESSING LAMA (tetap ada)
-        clean_text_old = text_preprocessing(input_text)
-
-        # ✅ PREPROCESSING BARU dari preprocessing.py
+        # ✅ PAKAI PREPROCESSING DARI preprocessing.py
         clean_text = full_preprocess(input_text, KAMUS)
 
-        # ✅ TF-IDF
+        # ✅ TF-IDF TRANSFORM
         X = VECTORIZER.transform([clean_text])
 
         model = MODELS[model_choice]

@@ -23,7 +23,7 @@ def get_base64_of_bin_file(file_path):
         return None
 
 # Gambar Utama (Background)
-BG_IMAGE_FILENAME = "gamabr.jpg"
+BG_IMAGE_FILENAME = "gamabr"
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 
 # Gambar Tambahan (Sisi Kiri)
@@ -192,12 +192,8 @@ with st.container():
         analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
 # ==========================================
-# 4️⃣ HASIL PREDIKSI DENGAN MANUAL OVERRIDE
+# 4️⃣ HASIL PREDIKSI
 # ==========================================
-# Daftar kata manual positif/negatif
-POSITIVE_WORDS = ["baik", "bagus", "mantap", "hebat", "cantik", "indah", "luar biasa", "menarik"]
-NEGATIVE_WORDS = ["buruk", "jelek", "parah", "gagal", "jelek banget", "menghina", "menyedihkan"]
-
 if analyze_button:
     if input_text.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
@@ -206,21 +202,13 @@ if analyze_button:
         X = VECTORIZER.transform([clean_text])
 
         model = MODELS[model_choice]
-        predicted_label = model.predict(X)[0]
+        prediction = model.predict(X)[0]
 
-        # Manual override: cek apakah ada kata positif/negatif di teks
-        words_in_text = clean_text.split()
-        if any(word in words_in_text for word in POSITIVE_WORDS):
-            predicted_label = "positif"
-        elif any(word in words_in_text for word in NEGATIVE_WORDS):
-            predicted_label = "negatif"
-
-        # Pilih badge
-        if predicted_label.lower() == "positif":
+        if prediction.lower() == "positif":
             badge_bg = "linear-gradient(90deg, #059669, #34d399)"
             icon = "😊"
             label = "POSITIF"
-        elif predicted_label.lower() == "negatif":
+        elif prediction.lower() == "negatif":
             badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
             icon = "😡"
             label = "NEGATIF"

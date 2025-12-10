@@ -104,4 +104,43 @@ def text_preprocessing(text):
     if STEMMER:
         text = STEMMER.stem(text)
 
-    return text.strip(
+    return text.strip()
+
+# ==========================================
+# 6. UI
+# ==========================================
+st.markdown("<h1 style='text-align:center;'>Analisis Sentimen DPR</h1>", unsafe_allow_html=True)
+
+if VECTORIZER is None or MODELS is None:
+    st.stop()
+
+col_img, col_input = st.columns([1, 2])
+
+with col_img:
+    if LEFT_IMAGE_B64:
+        st.image(f"data:image/jpeg;base64,{LEFT_IMAGE_B64}", use_column_width=True)
+
+with col_input:
+    model_choice = st.selectbox("Pilih Algoritma", list(MODELS.keys()))
+    input_text = st.text_area("Masukkan Komentar", height=100)
+    analyze_button = st.button("Analisis")
+
+# ==========================================
+# 7. PREDIKSI
+# ==========================================
+if analyze_button:
+    if input_text.strip() == "":
+        st.warning("Masukkan teks komentar.")
+    else:
+        clean_text = text_preprocessing(input_text)
+        X = VECTORIZER.transform([clean_text])
+
+        model = MODELS[model_choice]
+        prediction = model.predict(X)[0]
+
+        if prediction.lower() == "positif":
+            st.success("✅ Sentimen: POSITIF")
+        elif prediction.lower() == "negatif":
+            st.error("❌ Sentimen: NEGATIF")
+        else:
+            st.info("⚪ Sentimen: NETRAL")

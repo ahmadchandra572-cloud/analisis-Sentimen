@@ -15,23 +15,40 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- FUNGSI UTILITY ---
+# --- FUNGSI CALLBACK UNTUK MENGISI TEKS OTOMATIS ---
+def update_input_from_selectbox():
+    """
+    Fungsi ini dipanggil setiap kali st.selectbox berubah.
+    Ini memperbarui nilai di st.session_state.current_input
+    dengan nilai yang dipilih dari selectbox.
+    """
+    selected_value = st.session_state.selected_sample
+    
+    if selected_value != "-- ATAU KETIK SENDIRI DI BAWAH --":
+        # Atur nilai input teks ke teks sampel yang dipilih
+        st.session_state.current_input = selected_value
+    else:
+        # Jika opsi "ketik sendiri" dipilih, kosongkan input teks
+        st.session_state.current_input = ""
+
+# --- INISIALISASI SESSION STATE ---
+if 'current_input' not in st.session_state:
+    st.session_state.current_input = ""
+# ----------------------------------
+
+
 def get_base64_of_bin_file(file_path):
     try:
-        # Perhatian: Fungsi ini akan gagal jika file 'gamabr' atau 'images.jpg'
-        # tidak ditemukan di jalur yang benar (misalnya folder root deployment).
         with open(file_path, 'rb') as f:
             data = f.read()
         return base64.b64encode(data).decode()
     except FileNotFoundError:
-        # Jika file tidak ditemukan, kembalikan None, dan CSS background akan menggunakan fallback.
         return None
 
 # Gambar Utama (Background) dan Gambar Tambahan
 BG_IMAGE_FILENAME = "gamabr"
 EXTRA_IMAGE_FILENAME = "images.jpg"
 
-# PERBAIKAN: Memastikan BG_IMAGE_B64 didefinisikan dengan memanggil fungsi
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
 EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
 
@@ -319,26 +336,27 @@ with st.container():
     with col_input:
         # Pilihan 1: Pilih dari 100 Komentar Sampel
         st.markdown("<p style='font-weight: 600; margin-bottom: 5px;'>Pilih Komentar Sampel (100 Data):</p>", unsafe_allow_html=True)
-        selected_text = st.selectbox(
+        
+        # st.selectbox menggunakan callback dan key untuk sinkronisasi state
+        st.selectbox(
             label="Komentar Sampel",
             options=["-- ATAU KETIK SENDIRI DI BAWAH --"] + SAMPLE_COMMENTS_DPR,
+            key="selected_sample", # Key untuk menyimpan nilai di session state
+            on_change=update_input_from_selectbox, # Callback untuk mengisi text_area
             label_visibility="collapsed"
         )
 
-        # Pilihan 2: Input Manual (diberi nilai default dari pilihan di atas)
+        # Pilihan 2: Input Manual
         st.markdown("<p style='font-weight: 600; margin-top: 15px; margin-bottom: 5px;'>Atau Ketik Komentar Sendiri di Sini:</p>", unsafe_allow_html=True)
 
-        # Logika untuk mengatur nilai default text_area
-        initial_value = ""
-        if selected_text != "-- ATAU KETIK SENDIRI DI BAWAH --":
-            initial_value = selected_text
-
+        # st.text_area terikat langsung ke st.session_state.current_input.
+        # Penggunaan key dan state memungkinkan pengeditan yang lancar.
         input_text = st.text_area(
             label="Ketik Komentar",
-            value=initial_value,
+            value=st.session_state.current_input, 
             placeholder="Ketik komentar di sini...",
             height=100,
-            key="user_input_area", # Tambahkan key untuk menghindari bug Streamlit
+            key="current_input", # Key yang sama dengan Session State untuk 2-way binding
             label_visibility="collapsed"
         )
 
@@ -346,20 +364,19 @@ with st.container():
 
 # Logika Hasil
 if analyze_button:
-    if input_text.strip() == "":
+    # Kita menggunakan nilai terbaru dari input_text yang terikat ke session state
+    if st.session_state.current_input.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
     else:
         # Proses Prediksi
-        clean_text = text_preprocessing(input_text)
+        clean_text = text_preprocessing(st.session_state.current_input)
         
-        # Cek apakah vectorizer dan model berhasil dimuat
         if VECTORIZER is None or MODEL_TO_USE is None:
             st.error("⚠️ Analisis gagal: Model atau Vectorizer tidak tersedia.")
             st.stop()
             
         X = VECTORIZER.transform([clean_text])
 
-        # Model yang digunakan adalah model yang sudah ditetapkan di awal (MODEL_TO_USE)
         prediction = MODEL_TO_USE.predict(X)[0]
 
         # Styling Hasil

@@ -3,20 +3,11 @@ import joblib
 import re
 import string
 import base64
-import os
+
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
 # ==========================================
-# LOAD STEMMER (AMAN STREAMLIT CLOUD)
-# ==========================================
-try:
-    from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-    FACTORY = StemmerFactory()
-    STEMMER = FACTORY.create_stemmer()
-except:
-    STEMMER = None
-
-# ==========================================
-# KONFIGURASI HALAMAN
+# 0. KONFIGURASI HALAMAN
 # ==========================================
 st.set_page_config(
     page_title="Analisis Sentimen DPR",
@@ -25,58 +16,96 @@ st.set_page_config(
 )
 
 # ==========================================
-# FUNGSI LOAD GAMBAR
+# 1. FUNGSI LOAD GAMBAR
 # ==========================================
 def get_base64_of_bin_file(file_path):
     try:
         with open(file_path, 'rb') as f:
             data = f.read()
         return base64.b64encode(data).decode()
-    except:
+    except FileNotFoundError:
         return None
 
-# ==========================================
-# PATH BACKGROUND & IMAGE
-# ==========================================
-BG_IMAGE_FILENAME = "gamabr/background.jpg"   # ✅ background folder
-LEFT_IMAGE_FILENAME = "images.jpg"            # ✅ gambar kiri
-
+# Gambar Background (WAJIB file, bukan folder)
+BG_IMAGE_FILENAME = "gamabr/background.jpg"
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
-LEFT_IMAGE_B64 = get_base64_of_bin_file(LEFT_IMAGE_FILENAME)
+
+# Gambar Samping
+EXTRA_IMAGE_FILENAME = "images.jpg"
+EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
 
 # ==========================================
-# DEBUG STREAMLIT
-# ==========================================
-st.write("📂 Path background:", BG_IMAGE_FILENAME)
-st.write("✅ File background ada?:", os.path.exists(BG_IMAGE_FILENAME))
-
-# ==========================================
-# CSS BACKGROUND (PALING STABIL)
+# 2. CSS BACKGROUND
 # ==========================================
 if BG_IMAGE_B64:
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background: 
-                linear-gradient(rgba(10,25,47,0.50), rgba(10,25,47,0.70)),
-                url("data:image/jpeg;base64,{BG_IMAGE_B64}") no-repeat center center fixed;
-            background-size: cover;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    background_css = f"""
+    <style>
+    .stApp {{
+        background-image: 
+            linear-gradient(rgba(10, 25, 47, 0.40), rgba(10, 25, 47, 0.60)),
+            repeating-linear-gradient(
+                45deg,
+                rgba(100, 255, 218, 0.02),
+                rgba(100, 255, 218, 0.02) 2px,
+                transparent 2px,
+                transparent 40px
+            ),
+            url("data:image/jpeg;base64,{BG_IMAGE_B64}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+    """
 else:
-    st.error("❌ Background gagal dimuat, cek path file.")
+    background_css = """
+    <style>
+    .stApp {
+        background-image:
+            repeating-linear-gradient(
+                45deg,
+                rgba(100, 255, 218, 0.02),
+                rgba(100, 255, 218, 0.02) 2px,
+                transparent 2px,
+                transparent 40px
+            ),
+            radial-gradient(circle at center, #112240 0%, #0a192f 100%);
+    }
+    </style>
+    """
 
 # ==========================================
-# UI STYLE
+# 3. UI STYLE
 # ==========================================
 ui_style = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6; }
+
+html, body, [class*="css"] {
+    font-family: 'Poppins', sans-serif;
+    color: #ccd6f6;
+}
+
+/* Container Utama */
+.block-container {
+    background-color: rgba(17, 34, 64, 0.2);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 3rem 2rem !important;
+    border: 1px solid rgba(100, 255, 218, 0.08);
+    max-width: 900px;
+}
+
+h1 {
+    font-weight: 700;
+    background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
 .image-left-style {
     border-radius: 12px;
     overflow: hidden;
@@ -84,20 +113,55 @@ html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6;
     border: 3px solid #64ffda;
     box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
 }
+
 .sentiment-badge {
-    font-size: 28px; font-weight: 700; padding: 15px 40px;
-    border-radius: 50px; color: white; margin: 10px 0;
+    font-size: 28px;
+    font-weight: 700;
+    padding: 15px 40px;
+    border-radius: 50px;
+    display: inline-block;
+    color: white;
+    margin: 10px 0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.result-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.result-card {
+    background: rgba(17, 34, 64, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px 25px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 </style>
 """
+
+st.markdown(background_css, unsafe_allow_html=True)
 st.markdown(ui_style, unsafe_allow_html=True)
 
 # ==========================================
-# PREPROCESSING
+# 4. STEMMER
+# ==========================================
+try:
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
+except:
+    STEMMER = None
+
+# ==========================================
+# 5. PREPROCESSING
 # ==========================================
 @st.cache_data
 def text_preprocessing(text):
-    if not isinstance(text, str): 
+    if not isinstance(text, str):
         return ""
     text = text.lower()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text)
@@ -105,12 +169,14 @@ def text_preprocessing(text):
     text = re.sub(r'\d+', '', text)
     text = text.translate(str.maketrans('', '', string.punctuation))
     text = text.encode('ascii', 'ignore').decode('ascii')
+
     if STEMMER:
         text = STEMMER.stem(text)
+
     return text.strip()
 
 # ==========================================
-# LOAD MODEL
+# 6. LOAD MODEL
 # ==========================================
 @st.cache_resource
 def load_resources():
@@ -123,32 +189,39 @@ def load_resources():
         }
         return vectorizer, models
     except Exception as e:
-        st.error(f"Gagal memuat model: {e}")
+        st.error(f"Gagal memuat sistem: {e}")
         return None, None
 
 VECTORIZER, MODELS = load_resources()
 
 # ==========================================
-# UI LAYOUT
+# 7. UI UTAMA
 # ==========================================
-st.markdown("<h1 style='text-align:center;'>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
+st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
 
 if VECTORIZER is None or MODELS is None:
+    st.error("⚠️ Sistem gagal dimuat.")
     st.stop()
 
-col_img, col_input = st.columns([1, 2])
+with st.container():
+    col_img, col_input = st.columns([1, 2])
 
-with col_img:
-    if LEFT_IMAGE_B64:
-        st.image(f"data:image/jpeg;base64,{LEFT_IMAGE_B64}", use_column_width=True)
+    with col_img:
+        if EXTRA_IMAGE_B64:
+            st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
+            st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.info("Gambar tambahan tidak ditemukan.")
 
-with col_input:
-    model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
-    input_text = st.text_area("Masukkan komentar", height=100)
-    analyze_button = st.button("🔍 Analisis")
+    with col_input:
+        model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
+        input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
+        analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
 # ==========================================
-# PREDIKSI
+# 8. PREDIKSI
 # ==========================================
 if analyze_button:
     if input_text.strip() == "":
@@ -156,12 +229,32 @@ if analyze_button:
     else:
         clean_text = text_preprocessing(input_text)
         X = VECTORIZER.transform([clean_text])
-        model = MODELS[model_choice]
-        prediction = model.predict(X)[0].lower()
 
-        if prediction == "positif":
-            st.success("✅ POSITIF")
-        elif prediction == "negatif":
-            st.error("❌ NEGATIF")
+        model = MODELS[model_choice]
+        prediction = model.predict(X)[0]
+
+        if prediction.lower() == "positif":
+            badge_bg = "linear-gradient(90deg, #059669, #34d399)"
+            icon = "😊"
+            label = "POSITIF"
+        elif prediction.lower() == "negatif":
+            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
+            icon = "😡"
+            label = "NEGATIF"
         else:
-            st.info("⚪ NETRAL")
+            badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
+            icon = "😐"
+            label = "NETRAL"
+
+        st.markdown(
+            f"""
+            <div class="result-container">
+                <div class="result-card">
+                    <div class="sentiment-badge" style="background: {badge_bg};">
+                        {icon} &nbsp; {label}
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )

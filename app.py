@@ -6,6 +6,7 @@ import base64
 import pandas as pd
 import os
 
+from preprocessing import full_preprocessing
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from preprocessing import (
     load_kamus,

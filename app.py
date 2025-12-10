@@ -142,6 +142,18 @@ h1 {
     margin: 10px 0;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
+/* Tambahan CSS untuk Teks Bersih */
+.clean-text-box {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    font-size: 14px;
+    color: #64ffda;
+    text-align: left;
+    word-wrap: break-word;
+}
 </style>
 """
 
@@ -167,13 +179,13 @@ def text_preprocessing(text):
     text = re.sub(r'\d+', '', text)
     text = text.translate(str.maketrans('', '', string.punctuation))
     if STEMMER:
+        # Proses Stemming (kata "kerjanya" akan menjadi "kerja", "buruk" menjadi "buruk")
         text = STEMMER.stem(text)
     return text.strip()
 
 @st.cache_resource
 def load_resources():
     try:
-        # Perhatikan: Sesuaikan path ini jika Anda meletakkan file model di sub-folder (misalnya 'models/').
         vectorizer = joblib.load("tfidf_vectorizer.pkl")
         models = {
             "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
@@ -369,6 +381,13 @@ if analyze_button:
     else:
         # Proses Prediksi
         clean_text = text_preprocessing(st.session_state.current_input)
+        
+        # --- TAMPILAN DEBUG (untuk melihat apa yang model lihat) ---
+        st.markdown("---")
+        st.markdown(f"**Teks yang dianalisis model (setelah *pre-processing*):**")
+        st.markdown(f'<div class="clean-text-box">{clean_text}</div>', unsafe_allow_html=True)
+        st.markdown("---")
+        # -------------------------------------------------------------
 
         if VECTORIZER is None or MODEL_TO_USE is None:
             st.error("⚠️ Analisis gagal: Model atau Vectorizer tidak tersedia.")

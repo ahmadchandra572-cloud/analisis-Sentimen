@@ -142,7 +142,7 @@ h1 {
     margin: 10px 0;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
-/* Tambahan CSS untuk Teks Bersih */
+/* Tambahan CSS untuk Teks Bersih (dihapus dari output, tapi CSSnya biarkan saja) */
 .clean-text-box {
     background-color: rgba(0, 0, 0, 0.2);
     padding: 10px;
@@ -323,7 +323,7 @@ def force_correct_prediction(clean_text: str, prediction: str) -> str:
     (setelah distemming) dan mengoreksi prediksi menjadi 'negatif' 
     jika model ML memberikan hasil yang salah (misalnya Positif).
     """
-    STRONG_NEGATIVE_KEYWORDS = ['buruk', 'jelek', 'bobrok', 'korup', 'bobrol'] # Sesuaikan dengan kamus stemming Sastrawi
+    STRONG_NEGATIVE_KEYWORDS = ['buruk', 'jelek', 'bobrok', 'korup', 'bobrol', 'salah', 'tolak', 'gagal', 'miskin'] # Sesuaikan dan tambahkan jika perlu
 
     if prediction.lower() == 'positif':
         # Cek apakah teks mengandung kata negatif yang sangat kuat
@@ -342,7 +342,7 @@ if VECTORIZER is None or MODEL_TO_USE is None:
     st.error("⚠️ Sistem gagal dimuat atau model tidak ditemukan.")
     st.stop()
 
-# --- BLOK CONTOH KATA (Data Keywords Didefinisikan tanpa Ditampilkan) ---
+# --- BLOK CONTOH KATA (Didefinisikan tanpa Ditampilkan) ---
 positive_words = ["mantap", "bagus", "sukses", "hebat", "terbaik", "cocok", "adil", "bijak", "bersyukur"]
 negative_words = ["tolak", "gagal", "rugi", "miskin", "korupsi", "mahal", "bodoh", "malu", "kecewa"]
 neutral_words = ["rapat", "usulan", "pimpinan", "komisi", "kebijakan", "anggaran", "membahas", "jakarta", "sidang"]
@@ -406,36 +406,31 @@ if analyze_button:
         final_prediction = force_correct_prediction(clean_text, ml_prediction)
         
         # 3. Styling Hasil
+        is_corrected = False
         if 'koreksi' in final_prediction.lower():
-            # Jika dikoreksi, tampilkan sebagai negatif
+            is_corrected = True
             label = "NEGATIF"
             badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
             icon = "😡"
-            footer_text = "(Hasil dikoreksi secara manual karena mengandung kata negatif yang sangat kuat)."
+            # Hapus teks kaki untuk menyederhanakan output
+            footer_text = ""
         elif final_prediction.lower() == "positif":
             badge_bg = "linear-gradient(90deg, #059669, #34d399)"
             icon = "😊"
             label = "POSITIF"
-            footer_text = "(Hasil dari model pembelajaran mesin)."
+            footer_text = ""
         elif final_prediction.lower() == "negatif":
             badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
             icon = "😡"
             label = "NEGATIF"
-            footer_text = "(Hasil dari model pembelajaran mesin)."
+            footer_text = ""
         else: # Netral
             badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
             icon = "😐"
             label = "NETRAL"
-            footer_text = "(Hasil dari model pembelajaran mesin)."
+            footer_text = ""
 
-        # --- TAMPILAN DEBUG (Teks yang diproses) ---
-        st.markdown("---")
-        st.markdown(f"**Teks yang dianalisis model (setelah *pre-processing*):**")
-        st.markdown(f'<div class="clean-text-box">{clean_text}</div>', unsafe_allow_html=True)
-        st.markdown("---")
-        # -------------------------------------------------------------
-
-        # Tampilkan Kartu Hasil (Teks model telah dihapus)
+        # Tampilkan Kartu Hasil (Tampilan debug dihapus, hanya kartu hasil)
         st.markdown(f"""
         <div class="result-container">
             <div class="result-card">
@@ -443,7 +438,7 @@ if analyze_button:
                 <div class="sentiment-badge" style="background: {badge_bg};">
                     {icon} &nbsp; {label}
                 </div>
-                <small style='color: #94a3b8;'>{footer_text}</small>
+                {'' if not is_corrected else '<small style="color: #f87171;">(Hasil dikoreksi karena menggunakan kata negatif yang kuat)</small>'}
             </div>
         </div>
         """, unsafe_allow_html=True)

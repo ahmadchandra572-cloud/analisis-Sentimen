@@ -3,7 +3,8 @@ import joblib
 import re
 import string
 import base64
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory 
+
 
 # ==========================================
 # 0️⃣ KONFIGURASI HALAMAN & ENCODER
@@ -22,27 +23,31 @@ def get_base64_of_bin_file(file_path):
     except FileNotFoundError:
         return None
 
-# Gambar Utama (Background)
-BG_IMAGE_FILENAME = "gamabr"
+# Gambar Utama (Background) dan Gambar Tambahan
+BG_IMAGE_FILENAME = "gamabr" 
 BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
-
-# Gambar Tambahan (Sisi Kiri)
 EXTRA_IMAGE_FILENAME = "images.jpg"
 EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
 
+
 # ==========================================
-# 1️⃣ CSS STYLE INJECTION
+# 1️⃣ CSS STYLE INJECTION (Minimalis, Fokus, Background Lebih Jelas)
 # ==========================================
+# --- Background Image + Overlay ---
 if BG_IMAGE_B64:
     background_css = f"""
     <style>
     .stApp {{
         background-image: 
+            /* Layer 2: Overlay Biru Dongker (40%-60% opacity) */
             linear-gradient(rgba(10, 25, 47, 0.40), rgba(10, 25, 47, 0.60)), 
+            /* Layer 3: Pola Grid Halus */
             repeating-linear-gradient(
                 45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px
             ),
+            /* Base Image */
             url("data:image/jpeg;base64,{BG_IMAGE_B64}");
+            
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -60,19 +65,21 @@ else:
     </style>
     """
 
+# --- UI Styling (Fokus pada Badge) ---
 ui_style = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
 html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6; }
 
+/* Container Utama (Glassmorphism) */
 .block-container {
     background-color: rgba(17, 34, 64, 0.2); 
     backdrop-filter: blur(12px);
     border-radius: 20px;
     padding: 3rem 2rem !important;
     border: 1px solid rgba(100, 255, 218, 0.08); 
-    max-width: 900px;
+    max-width: 900px; /* Melebarkan untuk kolom gambar */
 }
 
 h1 {
@@ -85,6 +92,7 @@ h1 {
     letter-spacing: 1px;
 }
 
+/* Gambar Kiri */
 .image-left-style {
     border-radius: 12px;
     overflow: hidden;
@@ -93,38 +101,54 @@ h1 {
     box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
 }
 
-.sentiment-badge {
-    font-size: 28px;
-    font-weight: 700;
-    padding: 15px 40px;
-    border-radius: 50px;
-    display: inline-block;
-    color: white;
+.result-container { display: flex; justify-content: center; margin-top: 30px; }
+
+/* Kartu Hasil Sederhana */
+.result-card {
+    background: rgba(17, 34, 64, 0.5); 
+    backdrop-filter: blur(10px); 
+    border-radius: 16px;
+    padding: 20px 25px; 
+    width: 100%;
+    max-width: 400px; 
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sentiment-badge { 
+    font-size: 28px; 
+    font-weight: 700; 
+    padding: 15px 40px; 
+    border-radius: 50px; 
+    display: inline-block; 
+    color: white; 
     margin: 10px 0;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-.result-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 30px;
+/* Styling untuk Expander Kata Kunci */
+.st-emotion-cache-p5m8c2 { /* Target Streamlit expander header */
+    background: rgba(100, 255, 218, 0.1) !important;
+    border-radius: 10px !important;
+    padding: 10px !important;
+    border: none !important;
 }
-
-.result-card {
-    background: rgba(17, 34, 64, 0.5);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 20px 25px;
-    width: 100%;
-    max-width: 400px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+.sentiment-example-box {
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: #e0e7ff;
 }
+.positive { background-color: rgba(52, 211, 153, 0.1); border-left: 4px solid #34d399; }
+.negative { background-color: rgba(248, 113, 113, 0.1); border-left: 4px solid #f87171; }
+.neutral { background-color: rgba(100, 116, 139, 0.1); border-left: 4px solid #94a3b8; }
 </style>
 """
 
 st.markdown(background_css, unsafe_allow_html=True)
 st.markdown(ui_style, unsafe_allow_html=True)
+
 
 # ==========================================
 # 2️⃣ PREPROCESSING & RESOURCE LOADING
@@ -137,8 +161,7 @@ except:
 
 @st.cache_data
 def text_preprocessing(text):
-    if not isinstance(text, str):
-        return ""
+    if not isinstance(text, str): return ""
     text = text.lower()
     text = re.sub(r'http\S+|www\S+|https\S+', '', text)
     text = re.sub(r'@\w+', '', text)
@@ -165,6 +188,7 @@ def load_resources():
 
 VECTORIZER, MODELS = load_resources()
 
+
 # ==========================================
 # 3️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
 # ==========================================
@@ -175,35 +199,62 @@ if VECTORIZER is None or MODELS is None:
     st.error("⚠️ Sistem gagal dimuat.")
     st.stop()
 
-with st.container():
-    col_img, col_input = st.columns([1, 2])
+# --- BLOK CONTOH KATA (Panduan) ---
+with st.expander("📚 Contoh Kata Kunci Sentimen (Panduan)", expanded=False):
+    col_pos, col_neg, col_net = st.columns(3)
 
+    # Kata Kunci
+    positive_words = ["mantap", "bagus", "sukses", "hebat", "terbaik", "cocok", "adil", "bijak", "bersyukur"]
+    negative_words = ["tolak", "gagal", "rugi", "miskin", "korupsi", "mahal", "bodoh", "malu", "kecewa"]
+    neutral_words = ["rapat", "usulan", "pimpinan", "komisi", "kebijakan", "anggaran", "membahas", "jakarta", "sidang"]
+
+    with col_pos:
+        st.markdown("<h4 style='color: #34d399;'>POSITIF</h4>", unsafe_allow_html=True)
+        for word in positive_words:
+            st.markdown(f'<div class="sentiment-example-box positive">✅ {word}</div>', unsafe_allow_html=True)
+    
+    with col_neg:
+        st.markdown("<h4 style='color: #f87171;'>NEGATIF</h4>", unsafe_allow_html=True)
+        for word in negative_words:
+            st.markdown(f'<div class="sentiment-example-box negative">❌ {word}</div>', unsafe_allow_html=True)
+    
+    with col_net:
+        st.markdown("<h4 style='color: #94a3b8;'>NETRAL</h4>", unsafe_allow_html=True)
+        for word in neutral_words:
+            st.markdown(f'<div class="sentiment-example-box neutral">⚪ {word}</div>', unsafe_allow_html=True)
+# ---------------------------------------------
+
+
+# Layout Input
+with st.container():
+    col_img, col_input = st.columns([1, 2]) 
+    
     with col_img:
         if EXTRA_IMAGE_B64:
-            st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
-            st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+             st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
+             st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
+             st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.info("Gambar tambahan tidak ditemukan.")
+             st.info("Gambar tambahan tidak ditemukan.")
 
     with col_input:
         model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
-        input_text = st.text_area("💬 Masukkan komentar:", placeholder="Ketik komentar di sini...", height=100)
+        input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
         analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
-# ==========================================
-# 4️⃣ HASIL PREDIKSI
-# ==========================================
+# Logika Hasil
 if analyze_button:
     if input_text.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
     else:
+        # Proses Prediksi
         clean_text = text_preprocessing(input_text)
         X = VECTORIZER.transform([clean_text])
-
+        
         model = MODELS[model_choice]
         prediction = model.predict(X)[0]
-
+        
+        # Styling Hasil
         if prediction.lower() == "positif":
             badge_bg = "linear-gradient(90deg, #059669, #34d399)"
             icon = "😊"
@@ -217,6 +268,7 @@ if analyze_button:
             icon = "😐"
             label = "NETRAL"
 
+        # Tampilkan Kartu Hasil (Minimalis - Hanya Badge)
         st.markdown(f"""
         <div class="result-container">
             <div class="result-card">

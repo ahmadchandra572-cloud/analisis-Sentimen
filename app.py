@@ -5,107 +5,102 @@ import string
 import base64
 
 # ==========================================
-# LOAD STEMMER
+# 0. KONFIGURASI HALAMAN
+# ==========================================
+st.set_page_config(
+    page_title="Analisis Sentimen DPR",
+    page_icon="🤖",
+    layout="centered"
+)
+
+# ==========================================
+# 1. LOAD STEMMER (AMAN STREAMLIT CLOUD)
 # ==========================================
 try:
     from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-    STEMMER = StemmerFactory().create_stemmer()
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
 except:
     STEMMER = None
 
 # ==========================================
-# KONFIGURASI HALAMAN
+# 2. FUNGSI LOAD FILE → BASE64
 # ==========================================
-st.set_page_config(page_title="Analisis Sentimen DPR", page_icon="🤖", layout="centered")
-
-# ==========================================
-# LOAD FILE → BASE64
-# ==========================================
-def get_base64(file):
+def get_base64_of_bin_file(file_path):
     try:
-        with open(file, "rb") as f:
+        with open(file_path, "rb") as f:
             return base64.b64encode(f.read()).decode()
     except:
         return None
 
-BG = get_base64("gamabr")
-IMG = get_base64("images.jpg")
+# ==========================================
+# 3. NAMA FILE SESUAI REPO KAMU
+# ==========================================
+BG_IMAGE_FILENAME = "gamabr"      # ✅ FILE background (bukan folder)
+LEFT_IMAGE_FILENAME = "images.jpg" # ✅ FILE gambar kiri
+
+BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
+LEFT_IMAGE_B64 = get_base64_of_bin_file(LEFT_IMAGE_FILENAME)
 
 # ==========================================
-# CSS BACKGROUND
+# 4. CSS BACKGROUND
 # ==========================================
-if BG:
-    st.markdown(f"""
+if BG_IMAGE_B64:
+    background_css = f"""
     <style>
     .stApp {{
         background-image:
-            linear-gradient(rgba(10,25,47,0.3), rgba(10,25,47,0.6)),
-            url("data:image/*;base64,{BG}");
+            linear-gradient(rgba(10, 25, 47, 0.4), rgba(10, 25, 47, 0.6)),
+            url("data:image/*;base64,{BG_IMAGE_B64}");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
     }}
     </style>
-    """, unsafe_allow_html=True)
+    """
+else:
+    background_css = """
+    <style>
+    .stApp { background-color: #0a192f; }
+    </style>
+    """
 
-st.markdown("""
-<style>
-.image-box {
-    border-radius: 12px;
-    border: 3px solid #64ffda;
-    box-shadow: 0 0 20px rgba(100,255,218,0.35);
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown(background_css, unsafe_allow_html=True)
 
 # ==========================================
-# LOAD MODEL
+# 5. LOAD MODEL
 # ==========================================
-vectorizer = joblib.load("tfidf_vectorizer.pkl")
-models = {
-    "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
-    "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
-    "SVM": joblib.load("model_SVM_GamGwo.pkl")
-}
+@st.cache_resource
+def load_resources():
+    try:
+        vectorizer = joblib.load("tfidf_vectorizer.pkl")
+        models = {
+            "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
+            "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
+            "SVM": joblib.load("model_SVM_GamGwo.pkl")
+        }
+        return vectorizer, models
+    except Exception as e:
+        st.error(f"Gagal memuat model: {e}")
+        return None, None
+
+VECTORIZER, MODELS = load_resources()
 
 # ==========================================
-# PREPROCESSING
+# 6. PREPROCESSING
 # ==========================================
-def preprocess(text):
-    if not isinstance(text, str): return ""
+@st.cache_data
+def text_preprocessing(text):
+    if not isinstance(text, str):
+        return ""
     text = text.lower()
     text = re.sub(r"http\S+|www\S+", "", text)
+    text = re.sub(r"@\w+", "", text)
     text = re.sub(r"\d+", "", text)
     text = text.translate(str.maketrans("", "", string.punctuation))
+    text = text.encode("ascii", "ignore").decode("ascii")
     if STEMMER:
         text = STEMMER.stem(text)
     return text.strip()
 
-# ==========================================
-# UI ONLY (SESUAI YANG KAMU MAU)
-# ==========================================
-col1, col2 = st.columns([1, 2])
-
-with col1:
-    if IMG:
-        st.image(f"data:image/jpeg;base64,{IMG}", use_column_width=True, output_format="auto")
-
-with col2:
-    model_choice = st.selectbox("⚙️ Pilih Algoritma", list(models.keys()))
-    text = st.text_area("Masukkan komentar", height=120)
-    btn = st.button("🔍 Analisis")
-
-# ==========================================
-# HASIL
-# ==========================================
-if btn and text.strip():
-    clean = preprocess(text)
-    X = vectorizer.transform([clean])
-    pred = models[model_choice].predict(X)[0]
-
-    if pred.lower() == "positif":
-        st.success("✅ POSITIF")
-    elif pred.lower() == "negatif":
-        st.error("❌ NEGATIF")
-    else:
-        st.info("⚪ NETRAL")
+# ======

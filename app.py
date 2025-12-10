@@ -135,15 +135,16 @@ if btn:
 
     model = MODELS[algo]
 
-    # Manual override
-    positif = ["baik", "bagus", "mantap", "hebat"]
-    negatif = ["buruk", "jelek", "parah", "gagal"]
+    # Manual override dengan kata tambahan
+    positif = ["baik", "bagus", "mantap", "hebat", "cantik", "indah", "luar biasa", "menarik"]
+    negatif = ["buruk", "jelek", "parah", "gagal", "jelek banget", "menghina", "menyedihkan"]
 
     stem = hasil["stemming"].strip()
 
-    if stem in positif:
+    # Cek jika ada kata positif/negatif di teks
+    if any(word in stem.split() for word in positif):
         pred = "positif"
-    elif stem in negatif:
+    elif any(word in stem.split() for word in negatif):
         pred = "negatif"
     else:
         pred = model.predict(X)[0]

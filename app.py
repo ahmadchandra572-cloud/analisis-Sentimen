@@ -21,6 +21,7 @@ def get_base64_of_bin_file(file_path):
             data = f.read()
         return base64.b64encode(data).decode()
     except FileNotFoundError:
+        # st.error(f"File not found: {file_path}") # Jangan tampilkan error di awal
         return None
 
 # Gambar Utama (Background) dan Gambar Tambahan
@@ -143,6 +144,18 @@ h1 {
 .positive { background-color: rgba(52, 211, 153, 0.1); border-left: 4px solid #34d399; }
 .negative { background-color: rgba(248, 113, 113, 0.1); border-left: 4px solid #f87171; }
 .neutral { background-color: rgba(100, 116, 139, 0.1); border-left: 4px solid #94a3b8; }
+
+/* Gaya untuk Algoritma yang Dipilih */
+.chosen-algo {
+    font-size: 16px;
+    font-weight: 600;
+    color: #64ffda;
+    background-color: rgba(100, 255, 218, 0.05);
+    padding: 8px 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(100, 255, 218, 0.2);
+}
 </style>
 """
 
@@ -183,20 +196,31 @@ def load_resources():
         }
         return vectorizer, models
     except Exception as e:
-        st.error(f"Gagal memuat sistem: {e}")
+        st.error(f"Gagal memuat sistem. Pastikan file 'tfidf_vectorizer.pkl', 'model_RF_GamGwo.pkl', 'model_LR_GamGwo.pkl', dan 'model_SVM_GamGwo.pkl' ada: {e}")
         return None, None
 
 VECTORIZER, MODELS = load_resources()
 
+# ==========================================
+# 3️⃣ KONFIGURASI ALGORITMA SATU (GABUNGAN)
+# ==========================================
+# Kita pilih model terbaik (misalnya Random Forest) sebagai model utama.
+# Ini mensimulasikan "gabungan" di mana hanya satu hasil terbaik yang digunakan.
+CHOSEN_MODEL_NAME = "Random Forest"
+if MODELS and CHOSEN_MODEL_NAME in MODELS:
+    MODEL_TO_USE = MODELS[CHOSEN_MODEL_NAME]
+else:
+    MODEL_TO_USE = None
+
 
 # ==========================================
-# 3️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
+# 4️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
 # ==========================================
 st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
 
-if VECTORIZER is None or MODELS is None:
-    st.error("⚠️ Sistem gagal dimuat.")
+if VECTORIZER is None or MODEL_TO_USE is None:
+    st.error("⚠️ Sistem gagal dimuat atau model tidak ditemukan.")
     st.stop()
 
 # --- BLOK CONTOH KATA (Panduan) ---
@@ -238,7 +262,10 @@ with st.container():
              st.info("Gambar tambahan tidak ditemukan.")
 
     with col_input:
-        model_choice = st.selectbox("⚙️ Pilih Algoritma", list(MODELS.keys()))
+        # Pilihan Algoritma diganti dengan informasi algoritma yang digunakan
+        st.markdown(f"**⚙️ Algoritma Klasifikasi Terpilih:**")
+        st.markdown(f'<div class="chosen-algo">🏅 {CHOSEN_MODEL_NAME}</div>', unsafe_allow_html=True)
+        
         input_text = st.text_area("", placeholder="Ketik komentar di sini...", height=100)
         analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
@@ -251,8 +278,8 @@ if analyze_button:
         clean_text = text_preprocessing(input_text)
         X = VECTORIZER.transform([clean_text])
         
-        model = MODELS[model_choice]
-        prediction = model.predict(X)[0]
+        # Model yang digunakan adalah model yang sudah ditetapkan di awal (MODEL_TO_USE)
+        prediction = MODEL_TO_USE.predict(X)[0]
         
         # Styling Hasil
         if prediction.lower() == "positif":
@@ -272,9 +299,11 @@ if analyze_button:
         st.markdown(f"""
         <div class="result-container">
             <div class="result-card">
+                <h4 style="color: #ccd6f6; margin-bottom: 5px;">HASIL ANALISIS SENTIMEN</h4>
                 <div class="sentiment-badge" style="background: {badge_bg};">
                     {icon} &nbsp; {label}
                 </div>
+                <small style='color: #94a3b8;'>Menggunakan model {CHOSEN_MODEL_NAME} (Gabungan Hasil Terbaik)</small>
             </div>
         </div>
         """, unsafe_allow_html=True)

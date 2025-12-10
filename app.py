@@ -15,15 +15,14 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- FUNGSI CALLBACK UNTUK MENGISI TEKS OTOMATIS ---
+# --- FUNGSI UTILITY ---
 def update_input_from_selectbox():
     """
     Fungsi ini dipanggil setiap kali st.selectbox berubah.
-    Ini memperbarui nilai di st.session_state.current_input
-    dengan nilai yang dipilih dari selectbox.
+    Mengisi st.text_area dengan nilai yang dipilih.
     """
     selected_value = st.session_state.selected_sample
-    
+
     if selected_value != "-- ATAU KETIK SENDIRI DI BAWAH --":
         # Atur nilai input teks ke teks sampel yang dipilih
         st.session_state.current_input = selected_value
@@ -174,6 +173,7 @@ def text_preprocessing(text):
 @st.cache_resource
 def load_resources():
     try:
+        # Perhatikan: Sesuaikan path ini jika Anda meletakkan file model di sub-folder (misalnya 'models/').
         vectorizer = joblib.load("tfidf_vectorizer.pkl")
         models = {
             "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
@@ -182,7 +182,7 @@ def load_resources():
         }
         return vectorizer, models
     except Exception as e:
-        st.error(f"Gagal memuat sistem. Pastikan file 'tfidf_vectorizer.pkl', 'model_RF_GamGwo.pkl', 'model_LR_GamGwo.pkl', dan 'model_SVM_GamGwo.pkl' ada: {e}")
+        st.error(f"Gagal memuat sistem. Pastikan file model dan vectorizer ada di direktori yang benar: {e}")
         return None, None
 
 VECTORIZER, MODELS = load_resources()
@@ -336,7 +336,7 @@ with st.container():
     with col_input:
         # Pilihan 1: Pilih dari 100 Komentar Sampel
         st.markdown("<p style='font-weight: 600; margin-bottom: 5px;'>Pilih Komentar Sampel (100 Data):</p>", unsafe_allow_html=True)
-        
+
         # st.selectbox menggunakan callback dan key untuk sinkronisasi state
         st.selectbox(
             label="Komentar Sampel",
@@ -350,7 +350,6 @@ with st.container():
         st.markdown("<p style='font-weight: 600; margin-top: 15px; margin-bottom: 5px;'>Atau Ketik Komentar Sendiri di Sini:</p>", unsafe_allow_html=True)
 
         # st.text_area terikat langsung ke st.session_state.current_input.
-        # Penggunaan key dan state memungkinkan pengeditan yang lancar.
         input_text = st.text_area(
             label="Ketik Komentar",
             value=st.session_state.current_input, 
@@ -370,11 +369,11 @@ if analyze_button:
     else:
         # Proses Prediksi
         clean_text = text_preprocessing(st.session_state.current_input)
-        
+
         if VECTORIZER is None or MODEL_TO_USE is None:
             st.error("⚠️ Analisis gagal: Model atau Vectorizer tidak tersedia.")
             st.stop()
-            
+
         X = VECTORIZER.transform([clean_text])
 
         prediction = MODEL_TO_USE.predict(X)[0]
@@ -393,7 +392,7 @@ if analyze_button:
             icon = "😐"
             label = "NETRAL"
 
-        # Tampilkan Kartu Hasil (Minimalis - Hanya Badge)
+        # Tampilkan Kartu Hasil (Teks model telah dihapus)
         st.markdown(f"""
         <div class="result-container">
             <div class="result-card">
@@ -401,7 +400,6 @@ if analyze_button:
                 <div class="sentiment-badge" style="background: {badge_bg};">
                     {icon} &nbsp; {label}
                 </div>
-                <small style='color: #94a3b8;'>Menggunakan model {CHOSEN_MODEL_NAME} (Gabungan Hasil Terbaik)</small>
             </div>
         </div>
         """, unsafe_allow_html=True)

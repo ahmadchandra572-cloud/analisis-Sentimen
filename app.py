@@ -323,14 +323,13 @@ def force_correct_prediction(clean_text: str, prediction: str) -> str:
     (setelah distemming) dan mengoreksi prediksi menjadi 'negatif' 
     jika model ML memberikan hasil yang salah (misalnya Positif).
     """
-    STRONG_NEGATIVE_KEYWORDS = ['buruk', 'jelek', 'bobrok', 'korup', 'bobrol', 'salah', 'tolak', 'gagal', 'miskin'] # Sesuaikan dan tambahkan jika perlu
+    STRONG_NEGATIVE_KEYWORDS = ['buruk', 'jelek', 'bobrok', 'korup', 'bobrol', 'salah', 'tolak', 'gagal', 'miskin']
 
     if prediction.lower() == 'positif':
-        # Cek apakah teks mengandung kata negatif yang sangat kuat
         if any(keyword in clean_text for keyword in STRONG_NEGATIVE_KEYWORDS):
             return 'Negatif (Koreksi Manual)'
     
-    return prediction # Kembalikan prediksi asli jika tidak ada koreksi
+    return prediction
 
 # ==========================================
 # 5️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
@@ -406,31 +405,22 @@ if analyze_button:
         final_prediction = force_correct_prediction(clean_text, ml_prediction)
         
         # 3. Styling Hasil
-        is_corrected = False
-        if 'koreksi' in final_prediction.lower():
-            is_corrected = True
+        
+        # Kita hanya perlu mengekstrak label utama (Positif, Negatif, Netral)
+        if 'koreksi' in final_prediction.lower() or final_prediction.lower() == "negatif":
             label = "NEGATIF"
             badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
             icon = "😡"
-            # Hapus teks kaki untuk menyederhanakan output
-            footer_text = ""
         elif final_prediction.lower() == "positif":
+            label = "POSITIF"
             badge_bg = "linear-gradient(90deg, #059669, #34d399)"
             icon = "😊"
-            label = "POSITIF"
-            footer_text = ""
-        elif final_prediction.lower() == "negatif":
-            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
-            icon = "😡"
-            label = "NEGATIF"
-            footer_text = ""
-        else: # Netral
+        else:
+            label = "NETRAL"
             badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
             icon = "😐"
-            label = "NETRAL"
-            footer_text = ""
 
-        # Tampilkan Kartu Hasil (Tampilan debug dihapus, hanya kartu hasil)
+        # Tampilkan Kartu Hasil (Tampilan debug dan footer dihapus)
         st.markdown(f"""
         <div class="result-container">
             <div class="result-card">
@@ -438,7 +428,6 @@ if analyze_button:
                 <div class="sentiment-badge" style="background: {badge_bg};">
                     {icon} &nbsp; {label}
                 </div>
-                {'' if not is_corrected else '<small style="color: #f87171;">(Hasil dikoreksi karena menggunakan kata negatif yang kuat)</small>'}
             </div>
         </div>
         """, unsafe_allow_html=True)

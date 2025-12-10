@@ -1,19 +1,24 @@
 import pandas as pd
 import re
 
-# =============================
-# LOAD KAMUS
-# =============================
+# =====================================
+# 1. LOAD KAMUS KATA BAKU
+# =====================================
 def load_kamus():
     try:
         kamus = pd.read_excel("kamuskatabaku.xlsx")
         return dict(zip(kamus['tidak_baku'], kamus['kata_baku']))
-    except:
+    except Exception as e:
+        print("Gagal load kamus:", e)
         return {}
 
-# =============================
-# CLEANING FUNCTIONS
-# =============================
+# Load kamus langsung saat file dipakai
+KAMUS = load_kamus()
+
+# =====================================
+# 2. CLEANING FUNCTIONS
+# =====================================
+
 def remove_emoji(text):
     if not isinstance(text, str):
         return ""
@@ -46,3 +51,39 @@ def remove_url(text):
 
 def remove_html(text):
     return re.sub(r'<.*?>', '', text) if isinstance(text, str) else ""
+
+# =====================================
+# 3. NORMALISASI KATA TIDAK BAKU
+# =====================================
+def normalisasi_kata(text):
+    if not isinstance(text, str):
+        return ""
+
+    words = text.split()
+    hasil = []
+
+    for word in words:
+        if word in KAMUS:
+            hasil.append(KAMUS[word])
+        else:
+            hasil.append(word)
+
+    return ' '.join(hasil)
+
+# =====================================
+# 4. PIPELINE PREPROCESSING UNTUK MODEL
+# =====================================
+def full_preprocessing(text):
+    if not isinstance(text, str):
+        return ""
+
+    text = text.lower()
+    text = remove_emoji(text)
+    text = remove_url(text)
+    text = remove_html(text)
+    text = remove_username(text)
+    text = remove_symbols(text)
+    text = remove_numbers(text)
+    text = normalisasi_kata(text)
+
+    return text.strip()

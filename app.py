@@ -5,6 +5,9 @@ import string
 import base64
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
+# ✅ TAMBAHAN: Import preprocessing.py
+from preprocessing import full_preprocess, load_kamus
+
 # ==========================================
 # 0️⃣ KONFIGURASI HALAMAN & ENCODER
 # ==========================================
@@ -127,7 +130,7 @@ st.markdown(background_css, unsafe_allow_html=True)
 st.markdown(ui_style, unsafe_allow_html=True)
 
 # ==========================================
-# 2️⃣ PREPROCESSING & RESOURCE LOADING
+# 2️⃣ PREPROCESSING ASLI (TIDAK DIHAPUS)
 # ==========================================
 try:
     FACTORY = StemmerFactory()
@@ -149,24 +152,26 @@ def text_preprocessing(text):
         text = STEMMER.stem(text)
     return text.strip()
 
+# ==========================================
+# 3️⃣ LOAD RESOURCES
+# ==========================================
 @st.cache_resource
 def load_resources():
-    try:
-        vectorizer = joblib.load("tfidf_vectorizer.pkl")
-        models = {
-            "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
-            "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
-            "SVM": joblib.load("model_SVM_GamGwo.pkl")
-        }
-        return vectorizer, models
-    except Exception as e:
-        st.error(f"Gagal memuat sistem: {e}")
-        return None, None
+    vectorizer = joblib.load("tfidf_vectorizer.pkl")
+    models = {
+        "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
+        "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
+        "SVM": joblib.load("model_SVM_GamGwo.pkl")
+    }
+    return vectorizer, models
 
 VECTORIZER, MODELS = load_resources()
 
+# ✅ TAMBAHAN: Load kamus dari preprocessing.py
+KAMUS = load_kamus()
+
 # ==========================================
-# 3️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
+# 4️⃣ UI UTAMA
 # ==========================================
 st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
@@ -192,13 +197,19 @@ with st.container():
         analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
 # ==========================================
-# 4️⃣ HASIL PREDIKSI
+# 5️⃣ PREDIKSI (PAKAI KODE LAMA + BARU)
 # ==========================================
 if analyze_button:
     if input_text.strip() == "":
         st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        clean_text = text_preprocessing(input_text)
+        # ✅ PREPROCESSING LAMA (tetap ada)
+        clean_text_old = text_preprocessing(input_text)
+
+        # ✅ PREPROCESSING BARU dari preprocessing.py
+        clean_text = full_preprocess(input_text, KAMUS)
+
+        # ✅ TF-IDF
         X = VECTORIZER.transform([clean_text])
 
         model = MODELS[model_choice]

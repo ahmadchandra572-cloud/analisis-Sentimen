@@ -1,298 +1,433 @@
-import pandas as pd
-import numpy as np
-import random
-import matplotlib.pyplot as plt
-import seaborn as sns
-import warnings
-from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, roc_curve, auc
-from sklearn.preprocessing import label_binarize
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-# =========================================================================
-# ⚠️ LANGKAH 0: INISIASI DATA INPUT (HARUS DIUBAH DENGAN DATA ASLI ANDA)
-# Fixes: Mengatasi ValueError: np.nan is an invalid document
-# =========================================================================
-file_path = '/content/data_labeling.csv' 
-try:
-    # Coba muat data Anda yang sudah dilabeli
-    data = pd.read_csv(file_path) 
-    print(f"✅ Berhasil memuat data dari: {file_path}")
-except FileNotFoundError:
-    print("❌ File data_labeling.csv tidak ditemukan. Menggunakan data dummy.")
-    data = pd.DataFrame({
-        'steming_data': ['dpr korup gaji tinggi', 'kinerja baik dan bagus', np.nan, 'dpr brengsek', 'pemerintah sudah benar'],
-        'label': ['Negatif', 'Positif', 'Netral', 'Negatif', 'Positif']
-    })
-
-# --- LANGKAH PERBAIKAN: Menangani NaN dan Vektorisasi ---
-# 1. Mengisi nilai NaN pada kolom teks dengan string kosong dan konversi ke string
-data['steming_data'] = data['steming_data'].fillna('').astype(str)
-# 2. Hapus baris yang memiliki label NaN (jika ada)
-data.dropna(subset=['label'], inplace=True)
-# 3. Hapus baris yang teksnya kosong setelah diisi NaN
-data = data[data['steming_data'].str.strip() != '']
-
-# Vektorisasi (Mengubah teks menjadi matriks numerik menggunakan TF-IDF)
-vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(data['steming_data'])
-y = data['label']
-
-print(f"✅ Data X (fitur) dan y (label) berhasil diinisiasi. Total sampel: {len(y)}")
-# =========================================================================
-# ⚠️ AKHIR INISIASI DATA
-# =========================================================================
+import streamlit as st
+import joblib
+import re
+import string
+import base64
+from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
 
-# --- 1. Pemisahan Data ---
-# Split data into training and testing sets (80:20)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
-print("\n--- 1. Data Split ---")
-print("Jumlah data training (X_train):", X_train.shape[0])
-print("Jumlah data testing (X_test):", X_test.shape[0])
-
-
-# =========================================================================
-# --- 2. FUNGSI OPTIMASI GAM-GWO (GA + GWO) ---
-# =========================================================================
-
-# -----------------------------
-# Fitness Function (Random Forest, Logistic Regression, SVM)
-# -----------------------------
-def fitness_rf(params):
-    n_estimators, max_depth, min_samples_split, min_samples_leaf = params
-    n_estimators = max(int(n_estimators), 1)
-    max_depth = None if int(max_depth) == 0 else int(max_depth)
-    min_samples_split = max(int(min_samples_split), 2)
-    min_samples_leaf = max(int(min_samples_leaf), 1)
-    model = RandomForestClassifier(
-        n_estimators=n_estimators, max_depth=max_depth, min_samples_split=min_samples_split, 
-        min_samples_leaf=min_samples_leaf, random_state=42
-    )
-    score = cross_val_score(model, X_train, y_train, cv=3, scoring='accuracy', error_score='raise')
-    return np.mean(score)
-
-def fitness_lr(params):
-    C = max(params[0], 0.01)
-    model = LogisticRegression(C=C, max_iter=1000, solver='lbfgs', multi_class='auto')
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        score = cross_val_score(model, X_train, y_train, cv=3, scoring='accuracy')
-    return np.mean(score)
-
-def fitness_svm(params):
-    C, gamma = params
-    C = max(C, 0.01)
-    gamma = max(gamma, 0.0001)
-    model = SVC(C=C, gamma=gamma, kernel='rbf', probability=True) 
-    score = cross_val_score(model, X_train, y_train, cv=3, scoring='accuracy', error_score='raise')
-    return np.mean(score)
-
-# -----------------------------
-# GA Core Functions
-# -----------------------------
-def ga_initial_population(pop_size, search_space):
-    return np.array([[random.uniform(search_space[j][0], search_space[j][1]) for j in range(len(search_space))]
-                     for _ in range(pop_size)])
-def ga_crossover(p1, p2):
-    return (p1 + p2) / 2
-def ga_mutate(ind):
-    return ind + np.random.normal(0, 0.1, size=len(ind))
-def run_ga(fitness_func, pop_size, generations, search_space):
-    population = ga_initial_population(pop_size, search_space)
-    for g in range(generations):
-        fitness = np.array([fitness_func(ind) for ind in population])
-        sorted_idx = np.argsort(fitness)[::-1]
-        population = population[sorted_idx]
-        best = population[0]
-        new_pop = [best]
-        while len(new_pop) < pop_size:
-            parents = population[np.random.choice(range(min(5, pop_size)), 2, replace=False)]
-            child = ga_crossover(parents[0], parents[1])
-            child = ga_mutate(child)
-            child = np.clip(child, [s[0] for s in search_space], [s[1] for s in search_space])
-            new_pop.append(child)
-        population = np.array(new_pop)
-    return population[0], fitness_func(population[0])
-
-# -----------------------------
-# GWO Core Function
-# -----------------------------
-def gwo_optimize(fitness_func, dim, search_space, init_pos, wolves=10, iterations=10):
-    alpha, beta, delta = np.zeros(dim), np.zeros(dim), np.zeros(dim)
-    alpha_score, beta_score, delta_score = -1, -1, -1
-    positions = np.array([init_pos + np.random.uniform(-0.1,0.1,dim) for _ in range(wolves)])
-    
-    for t in range(iterations):
-        a = 2 - t*(2/iterations)
-        for i in range(wolves):
-            score = fitness_func(positions[i])
-            if score > alpha_score:
-                delta_score, beta_score, alpha_score = beta_score, alpha_score, score
-                delta, beta, alpha = np.copy(beta), np.copy(alpha), np.copy(positions[i])
-            elif score > beta_score:
-                delta_score, beta_score = beta_score, score
-                delta, beta = np.copy(beta), np.copy(positions[i])
-            elif score > delta_score:
-                delta_score = score
-                delta = np.copy(positions[i])
-        for i in range(wolves):
-            for j in range(dim):
-                r1,r2 = random.random(), random.random()
-                A1, C1 = 2*a*r1 - a, 2*r2
-                D_alpha = abs(C1*alpha[j] - positions[i][j])
-                X1 = alpha[j] - A1*D_alpha
-
-                r1,r2 = random.random(), random.random()
-                A2, C2 = 2*a*r1 - a, 2*r2
-                D_beta = abs(C2*beta[j] - positions[i][j])
-                X2 = beta[j] - A2*D_beta
-
-                r1,r2 = random.random(), random.random()
-                A3, C3 = 2*a*r1 - a, 2*r2
-                D_delta = abs(C3*delta[j] - positions[i][j])
-                X3 = delta[j] - A3*D_delta
-
-                positions[i][j] = (X1+X2+X3)/3
-            positions[i] = np.clip(positions[i],[s[0] for s in search_space],[s[1] for s in search_space])
-    return alpha, alpha_score
-
-# =========================================================================
-# --- 3. PELATIHAN & OPTIMASI MODEL ---
-# =========================================================================
-
-print("\n--- 3. Pelatihan Model Dasar dan Optimasi GAM-GWO ---")
-
-# A. Random Forest (RF)
-rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
-rf_model.fit(X_train, y_train)
-rf_search_space = [[50,500],[0,50],[2,10],[1,5]] 
-best_rf_ga, score_rf_ga = run_ga(fitness_rf, pop_size=10, generations=5, search_space=rf_search_space)
-best_rf_gwo_params, score_rf_gwo = gwo_optimize(fitness_rf, dim=4, search_space=rf_search_space, init_pos=best_rf_ga, wolves=5, iterations=5)
-best_rf_model = RandomForestClassifier(
-    n_estimators=max(int(best_rf_gwo_params[0]),1),
-    max_depth=None if int(best_rf_gwo_params[1])==0 else int(best_rf_gwo_params[1]),
-    min_samples_split=max(int(best_rf_gwo_params[2]),2),
-    min_samples_leaf=max(int(best_rf_gwo_params[3]),1),
-    random_state=42
+# ==========================================
+# 0️⃣ KONFIGURASI HALAMAN & ENCODER
+# ==========================================
+st.set_page_config(
+    page_title="Analisis Sentimen DPR",
+    page_icon="🤖",
+    layout="centered"
 )
-best_rf_model.fit(X_train, y_train)
-y_pred_rf_opt = best_rf_model.predict(X_test)
+
+# --- FUNGSI UTILITY ---
+def update_input_from_selectbox():
+    """
+    Fungsi ini dipanggil setiap kali st.selectbox berubah.
+    Mengisi st.text_area dengan nilai yang dipilih.
+    """
+    selected_value = st.session_state.selected_sample
+
+    if selected_value != "-- ATAU KETIK SENDIRI DI BAWAH --":
+        # Atur nilai input teks ke teks sampel yang dipilih
+        st.session_state.current_input = selected_value
+    else:
+        # Jika opsi "ketik sendiri" dipilih, kosongkan input teks
+        st.session_state.current_input = ""
+
+# --- INISIALISASI SESSION STATE ---
+if 'current_input' not in st.session_state:
+    st.session_state.current_input = ""
+# ----------------------------------
 
 
-# B. Logistic Regression (LR)
-log_reg = LogisticRegression(max_iter=1000)
-log_reg.fit(X_train, y_train)
-lr_search_space = [[0.01, 100]] 
-best_lr_ga, score_lr_ga = run_ga(fitness_lr, pop_size=10, generations=5, search_space=lr_search_space)
-best_lr_gwo_params, score_lr_gwo = gwo_optimize(fitness_lr, dim=1, search_space=lr_search_space, init_pos=best_lr_ga, wolves=5, iterations=5)
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore")
-    best_lr_model = LogisticRegression(C=max(best_lr_gwo_params[0], 0.01), max_iter=1000, solver='lbfgs', multi_class='auto')
-    best_lr_model.fit(X_train, y_train)
-y_pred_lr_opt = best_lr_model.predict(X_test)
+def get_base64_of_bin_file(file_path):
+    try:
+        with open(file_path, 'rb') as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except FileNotFoundError:
+        return None
+
+# Gambar Utama (Background) dan Gambar Tambahan
+BG_IMAGE_FILENAME = "gamabr"
+EXTRA_IMAGE_FILENAME = "images.jpg"
+
+BG_IMAGE_B64 = get_base64_of_bin_file(BG_IMAGE_FILENAME)
+EXTRA_IMAGE_B64 = get_base64_of_bin_file(EXTRA_IMAGE_FILENAME)
 
 
-# C. Support Vector Machine (SVM)
-svm = SVC(probability=True) 
-svm.fit(X_train, y_train)
-svm_search_space = [[0.01,100],[0.0001,1]] 
-best_svm_ga, score_svm_ga = run_ga(fitness_svm, pop_size=10, generations=5, search_space=svm_search_space)
-best_svm_gwo_params, score_svm_gwo = gwo_optimize(fitness_svm, dim=2, search_space=svm_search_space, init_pos=best_svm_ga, wolves=5, iterations=5)
-best_svm_model = SVC(C=best_svm_gwo_params[0], gamma=best_svm_gwo_params[1], kernel='rbf', probability=True)
-best_svm_model.fit(X_train, y_train)
-y_pred_svm_opt = best_svm_model.predict(X_test)
+# ==========================================
+# 1️⃣ CSS STYLE INJECTION
+# ==========================================
+if BG_IMAGE_B64:
+    background_css = f"""
+    <style>
+    .stApp {{
+        background-image:
+            linear-gradient(rgba(10, 25, 47, 0.40), rgba(10, 25, 47, 0.60)),
+            repeating-linear-gradient(
+                45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px
+            ),
+            url("data:image/jpeg;base64,{BG_IMAGE_B64}");
 
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+    """
+else:
+    background_css = """
+    <style>
+    .stApp {
+        background-image: repeating-linear-gradient(45deg, rgba(100, 255, 218, 0.02), rgba(100, 255, 218, 0.02) 2px, transparent 2px, transparent 40px),
+            radial-gradient(circle at center, #112240 0%, #0a192f 100%);
+    }
+    </style>
+    """
 
-# =========================================================================
-# --- 4. EVALUASI AKHIR (OPTIMIZED MODELS) ---
-# =========================================================================
+ui_style = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
-print("\n\n--- 4. Evaluasi Kinerja Model Setelah Optimasi GAM-GWO ---")
+html, body, [class*="css"] { font-family: 'Poppins', sans-serif; color: #ccd6f6; }
 
-# --- 4.1 Visualisasi Confusion Matrix (Optimized Models) ---
-fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-models_opt = [best_rf_model, best_lr_model, best_svm_model]
-preds_opt = [y_pred_rf_opt, y_pred_lr_opt, y_pred_svm_opt]
-titles_opt = ["RF (GAM-GWO)", "LR (GAM-GWO)", "SVM (GAM-GWO)"]
-cmaps = ["Greens", "Blues", "Oranges"]
-
-for i, model in enumerate(models_opt):
-    cm = confusion_matrix(y_test, preds_opt[i])
-    sns.heatmap(cm, annot=True, fmt="d", cmap=cmaps[i], ax=axes[i],
-                xticklabels=model.classes_, yticklabels=model.classes_)
-    axes[i].set_title(f"Confusion Matrix - {titles_opt[i]}")
-    axes[i].set_xlabel("Predicted Labels")
-    axes[i].set_ylabel("True Labels")
-plt.tight_layout()
-plt.show()
-
-# --- 4.2 Laporan Klasifikasi dan Akurasi ---
-final_accuracies = {
-    "Random Forest (Optimized)": accuracy_score(y_test, y_pred_rf_opt) * 100,
-    "Logistic Regression (Optimized)": accuracy_score(y_test, y_pred_lr_opt) * 100,
-    "SVM (Optimized)": accuracy_score(y_test, y_pred_svm_opt) * 100
+/* Container Utama (Glassmorphism) */
+.block-container {
+    background-color: rgba(17, 34, 64, 0.2);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 3rem 2rem !important;
+    border: 1px solid rgba(100, 255, 218, 0.08);
+    max-width: 900px;
 }
 
-print("\n--- Ringkasan Akurasi Model Teroptimasi ---")
-for model_name, acc in final_accuracies.items():
-    print(f"Akurasi {model_name}: {acc:.2f}%")
-    print(classification_report(y_test, preds_opt[list(final_accuracies.keys()).index(model_name)], zero_division=0))
+h1 {
+    font-weight: 700;
+    background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    margin-bottom: 5px;
+    letter-spacing: 1px;
+}
+
+/* Gambar Kiri */
+.image-left-style {
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 15px;
+    border: 3px solid #64ffda;
+    box-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
+}
+
+.result-container { display: flex; justify-content: center; margin-top: 30px; }
+
+/* Kartu Hasil Sederhana */
+.result-card {
+    background: rgba(17, 34, 64, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px 25px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sentiment-badge {
+    font-size: 28px;
+    font-weight: 700;
+    padding: 15px 40px;
+    border-radius: 50px;
+    display: inline-block;
+    color: white;
+    margin: 10px 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+/* Tambahan CSS untuk Teks Bersih (dihapus dari output, tapi CSSnya biarkan saja) */
+.clean-text-box {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    font-size: 14px;
+    color: #64ffda;
+    text-align: left;
+    word-wrap: break-word;
+}
+</style>
+"""
+
+st.markdown(background_css, unsafe_allow_html=True)
+st.markdown(ui_style, unsafe_allow_html=True)
+
+
+# ==========================================
+# 2️⃣ PREPROCESSING & RESOURCE LOADING
+# ==========================================
+try:
+    FACTORY = StemmerFactory()
+    STEMMER = FACTORY.create_stemmer()
+except:
+    STEMMER = None
+
+@st.cache_data
+def text_preprocessing(text):
+    if not isinstance(text, str): return ""
+    text = text.lower()
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
+    text = re.sub(r'@\w+', '', text)
+    text = re.sub(r'\d+', '', text)
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    if STEMMER:
+        text = STEMMER.stem(text)
+    return text.strip()
+
+@st.cache_resource
+def load_resources():
+    try:
+        vectorizer = joblib.load("tfidf_vectorizer.pkl")
+        models = {
+            "Random Forest": joblib.load("model_RF_GamGwo.pkl"),
+            "Logistic Regression": joblib.load("model_LR_GamGwo.pkl"),
+            "SVM": joblib.load("model_SVM_GamGwo.pkl")
+        }
+        return vectorizer, models
+    except Exception as e:
+        st.error(f"Gagal memuat sistem. Pastikan file model dan vectorizer ada di direktori yang benar: {e}")
+        return None, None
+
+VECTORIZER, MODELS = load_resources()
+
+# ==========================================
+# 3️⃣ KONFIGURASI ALGORITMA SATU (GABUNGAN)
+# ==========================================
+CHOSEN_MODEL_NAME = "Random Forest"
+if MODELS and CHOSEN_MODEL_NAME in MODELS:
+    MODEL_TO_USE = MODELS[CHOSEN_MODEL_NAME]
+else:
+    MODEL_TO_USE = None
+
+
+# ==========================================
+# 3.5️⃣ DAFTAR 100 KOMENTAR SAMPEL
+# ==========================================
+SAMPLE_COMMENTS_DPR = [
+    'Dpr jancok dpr tidak adil dasar',
+    'Setuju gaji anggota dewan umr supaya orang tidak ambisisius berlomba lomba untuk menjadi anggota dewan karena tergiur gaji besar',
+    'Brukakaka 1000% bayar PBB. Yang tinggal di kolong jembatan layak gk. Bangke bangke asal ngomong aja',
+    'Mantap tarian jogetnya. Macam monyet dapat pisang.',
+    'Iy ...,tapi kan anggota dewan.,pada orang kayna...beramal sedikit tuk rak yat kan lebih bagus...😮\n,.,',
+    'Iy ...,tapi kan anggota dewan.,pada orang kayna...beramal sedikit tuk rak yat kan lebih bagus...😮\n,.,',
+    'Apa dpr . Mau jaga rakyat . Atau mau siksa rakyat . Setuju . Nerima uang rakyat . Segitu banyak . Tolong dpr . Janga rampok rakyat',
+    'Kadang memang bikin hati panas dan ngerasa nggak adil. Tapi jangan sampai rasa iri itu bikin kita patah semangat ya ✊\nKita tetap jauh lebih berharga walau gaji 3jt per bulan ,karena kerja keras kita halal, nyata, dan hasilnya benar-benar dinikmati keluarga sendiri ❤️',
+    'Semoga dapet musibah gaji dpr naik udh enak ksh tunjangan hidup, gak naik juga gajinya dpr tetep gede itu, giliran buruh, kuli, guru, atau dibidang apapun itu malah segitu² aja gak ada kenaikan secara signifikan, gak adil sumpah gak waras negara ini..',
+    'Pejabat paling terkorup indonesia.\n-kerja ora iso\n-gajih besar hampir nyamain negara maju\n-pajak di tanggung negara\nHebat kan....',
+    'OHHH KITA BAYAR PAJAK DAN SEGALANYA SAMPAI APA APA DI KASIH PAJAK TERUS ADA LAGI BAYAR ROYALTI\n\nITU SEMUA UNTUK KENAIKAN GAJI DPR ? Dengan dalil kompensasi apalah itu halah bahasa halusnya hebat',
+    'Hebat ...anggota DPR bisa makmur.. dan suksesss...dan kaya raya....sampai dunia kiamat ...ha ha ha...kok rakyat nonton dan diam aja....ha ha ha......',
+    'Kalau perkara rujab gk  layak huni,, kan bisa uang kompensasi nya dijadiin buat renovasi,, lagipula kompensasi  50jt perbulan x 5 tahun,, lah,, itu mah bisa beli 1 rumah  harga 3 M,,',
+    'Saya lebih setuju gajih TNI di naikan TNI nyawa taruhannya, TNI Garda terdepan, kalau DPR banyak madhorot nya, habis habisin anggaran negara aja',
+    'Mana dulu yang bilang klok probowo jadi presiden indo bakal makmur konyol makan tuh yang dukung Wowo',
+    'Rumah ga layak langsung dapet duit...\nApa kabar bagi rakyat yg di wakilkan pada tidur di jalan',
+    'BUBARKAN MRP DPR. ALOKASI GAJI MERRKA BUAT RAKYAT, GURU YANG LEBIH BERMANFAAT DIBANDINGKAN MEREKA YG DUDUK DI DPR MPR.\n\nDUKUNG DEMO 25 AGUSTUS',
+    'Masih banyak pengangguran, masih ada yang kelaparan ,hebat',
+    'Rakyatnya masih kesulitan untuk tempat tidur \nDPR RI bilang mereka tinggal di rumah tidak layak \n\nPejabat negara ini aneh \nIndonesia pasti akan krisis dalam beberapa tahun kedepan \nDan akan terjadi kerusuhan yang besar dan itu sudah pasti \nMasyarakat tidak puas dengan kinerja pejabat negara',
+    'Ora usah nggo mumet...golput adalah jalan terbaik 👍👍👍👍👍🇮🇩🇮🇩🇮🇩🇮🇩🇮🇩',
+    'Memang indonesia hebat betul y, rakyat pasti setuju tu, KLO gaji DPR di naik kan, apa lah arti ny kami rakyat ini, ya kan boss?',
+    'Naik gaji sampe 100jt trs...tp ada yg blg GURU ADALAH BEBAN NEGARA...APA GAK SALAH.??\nINI YG COCOK JD BEBAN NEGARA',
+    'Rakyat.kelaparan.pak tolong kasih pekerjaan.yg layak.',
+    'Rakyat.kelaparan.pak tolong kasih pekerjaan.yg layak.',
+    'Mantap lanjutkan',
+    'Apa sih fungsi DPR MPR? Yang di rasakan adalah mereka seperti preman berkumpul di satu tempat.\n\nTidak ada rakyat yang benar-benar di wakili oleh mereka. Laknat lah kalian pemakaman uang rakyat secara zalim lewat jalur Pajak. Semoga kelak perut kalian kenyang akan minum air nanah didalam nerakah Jahanam.\n\nRakyat di zalimi dengan kebijakan, lapor Kapolri hanya berakhir dengan penjarah beberapa hari karena hukum di Indonesia adalah hukum yang tidak pernah adil. Maka mari kita laporkan mereka kepada Allah SWT atas kebijakannya hingga tak ada ampunan mereka dan mendekam lah mereka di dasar Jahanam yang panas dan mendidih.',
+    'Koplkkkk. Mau tunjang rumah tunjangan apapun tidak adil buat rakyat kecil. Kompen sasi rumah buat rakyat 15 jt.  Itu juga berupa barang akhit nya gak tuntas karna modelnya rmhnua dah di atur. Dan harus nombok..lieuuuurrrrr',
+    'SI EKO PATRIO DAN GEROMBOLANYA ANGGOTA DPR PALING KOPLAK PASTI RAKYAT YG MEMILIH DIA NYESEL SEGEDE GUNUNG.  GAK ADA DPR NEGARA TETAP JALAN ASAL ORANGNYA BENER, BUBARKAN DPR..\nSETUJU👍👍😁',
+    'Tunjangan rumah kata mereka yaaaaa terserahlaaaa,kalian berjoget kami nenontonkalian. Semoga yg maha adil allah swt melaknat kalian.para pemimpin yang tidak adil aamiin yrbl almin',
+    'Ga adil klu cuman anggota DPR yg naik guru tuh harusnya yg dinaikan mana janjinya pak presiden naikan gaji guru katanya.🙏',
+    'Yang setuju revolusi ,mari kita suarakan revolusi kita ulangan tragedi 97 hanya iti jalan keluaranya',
+    'Tunggu saja Revolusi itu akan terjadi ada waktu dan saatnya Rakyat Indonesia bergerak. Nikmatilh waktu kalian sebelum waktu itu habis dan datang. \n" LUPA BERKACA 98 "\nApa kabar Jendral koalisi koruptor janji masih ingat ? Rakyat Indonesia yang akan mengingatkan jika lupa\nBaru kali ini bangsa Indonesia salah memilih presiden karena merasa kasihan dan benar  hasilnya 0 besar. \nAntri Gas Lpg hingga mat*\nMinyak langkah beras oplosan\nPupuk susah\nPengangguran menurun ekonomi Indonesia tumbuh kata siapa ? \nKoruptor bebas\nRekening dan Tanah nganggur dapat disita\nGaji DPR 100JT \nGaji Guru ? 300rb/bulan\nAnak presiden terbaik Indonesia Gibran hanya duduk lemas miris sedih saat melihat koalisi koruptor omon omon berjoget dengan disahkannya gaji 100JT. \nTernyata Tukang Kayu lebih baik dan berani tidak pernah tunduk dengan mak lampir dan koalisi koruptor. \n\n2029 atau sebelumnya wajib ganti presiden.',
+    'Gajih tidak naik aja orang masih banyak yang ingin jadi DPR apa lagi naik??\nJustru harus nya tunjangan nya di turunin agar jdi dpr ikhlas demi rakyat bukan demi gajih\nYg setuju like',
+    'Rakyat kaya DPR miskin',
+    'Kami rakyat miskin sangat setuju kalau ģaji dpr sama dgn gaji pns.',
+    'Joget2 gaji naik, sangat menyakitkan rakyat miskin dan sulit cari makan, sdg mereka di gaji   dg uang rakyat.😮',
+    'begini kah hidup di indonesia dan begini kah yang diingin kan oleh para leluhur warga menangis karena kemeskinan sedangkan dpr yang sudah kaya tambah kaya dan koruptor di negara ini semakin banyak apa kah benar yang dibilang oleh prabowo bahwa indonesia pada tahun 2030 akan bubar???',
+    'jangan makan uang rakyat mikirin orang-orang yang nggak mampu yang miskin yang mulung dan lain-lain jangan mikirin uang pribadi mikirin orang-orang di bawah jangan makan uang haram',
+    'Cokk aku sebagai rakyat tidak ridho gaji anggota dewan dinaikkan begitu juga konpensasi rumah juga dinaikkan saya tidak ridho dunia akhirat, rumah anggota dewan bagus bagus kaya² seperti Bramasta, eko patrio harusnya yang dijadikan anggota dewan itu orang miskin insyaallah jujur baik akhlaknya tidak semena mena.',
+    'yg kaya makin kaya yg miskin makin miskin',
+    'Aku org Malaysia ketar ketir....😊😊😊 Gji DPR anggota Parlimen dibyar ratusan Juta RP....Gaji Guru hnya dibyar 300 Ribu..😢😢😢...Guru beban ngra bilangnya... Memang ngra yg x pya rasa malu...TKI yg kerja potong sawit pn di Malaysia dibayar gaji tinggi ..',
+    'tenyata ge baru tau arti APK (Anjayyy Pemerintah Korupsi)',
+    'CUIHHH NAJIS JOGED2 DI ATAS PENDERITAAN RAKYAT,,NEGARA BOBROK MIRIS MIRISS...',
+    'Pejabat makin kaya, Masyarakatnya mkin pada miskin.. Ampun parah ya Allah😔',
+    'tidak punya malu,  di saat rakyat menderita di cekik bayar pajak, mereka malah joget² dapat kenaikan gaji... terlaknat kalian semua yang menari nari di atas penderitaan rakyat',
+    'itulah anggota dpr pintar bersilat lidah, gaji di ganti nama menjadi tunjangan... banyak rakyat yg sehari makan cuma 1x bahkan ada yg tidak makan seharian, ini malah wakil nya joget2 senang dpt tunjangan 100jt/ bulan...\nnegeri apa coba ini... negara maju saja anggota dpr nya naik angkutan umum bukan naik alphard eh ini negara miskin anggota dpr nya ga ada yg naik angkutan umum...',
+    'Bikin miskin rakyat aja n dewan...',
+    'Kami rakyat sangat kecewa sama DPR  semoga pemilu berikutnya nggak ada yg milih mereka, semoga rakyat segera sadar...',
+    'Pikiran jelek sy bnr di naikan gaji dngn atas namakan kopensasi UANG rumah tinggl . Karna skrang kan segala bhn bakar mahal semua apa lagi bhn bakar buat makan',
+    'rakyat menangis,mbok ya lebih memikirkan nasib rakyat dari kalangan menengah k bawah ibu /bpk yg terhormat,masih  sangat bnyak rakyat2 miskin kekurangan pangan,tidak ada tempat tinggal,kurang perhatian aparat tentang kesehatan,baru2 ini kasus almarhumah adek raya yg dari kluarga tidak mampu,harus khilangannyawa karena ribuan cacing bersarang d tubuh kecilny dan karena kurang perhatian dari aparat desa,menyedihkan sekali,..\ntolonglah pak/ibu lihat mereka yg sangat mmbutuhkan,bpk/ibu anggota DPRD yg bisa mkn enak,bisa tidur  d tempat nyaman,tolong lihatlah mereka2 ini yg mkn pun susah walau cuma bisa mkn nasi saja sudah alhamdulillah,BPK/ibu apa tega menerima gaji yg besar sedangkan rakyat menangis,sedangkan gaji beliau jg berasal dari rakyat sedangkan rakyat menderita😢',
+    'Yang kaya makin kaya..yang miskin makin miskin',
+    'Rombongan orang miskin, telor bensin rumah beras, minta ditunjangan, yang bayar rakyat lewat pajak, sedangkan lo semua nga kena pajak penghasil gw sebagai rakyat nga iklhas lahir batin semoga lo semua dapat balasan yang setimpal, aamiin',
+    'kenaikan tunjangan anggota dpr dibayar dengan menaikan pajak yg semakin mencekik rakyat...... BIADAP MUKA2 ANGGOTA DPR RI GAK PUNYA MALU',
+    'RAKYAT SANGAT KESULITAN BUAT BELI BERAS, EHH ANGOTA DPR MALAH DAPAT TUNJANGAN BERAS,  SANGAT MENYEDIHKAN. RAKYAT BEGITU MISKINNYA. MALAH TUNJANGAN BERAS NYA LUAR BIASA, ANGOTA DPR ADA SUAMI ISTRI. BAYANGKAN TUNJANGAN BERAS. TUNGAN RUMAH. TUNJANGAN LISTRIK. TUNJANGAN SALON.  POKOKNYA PULUHAN TUNJANGAN. TUNJANGAN TIAP RAPAT. TUNJANGAN KE DAERAH. BELUM LAGI KELUAR NEGERU.  POKOKNYA SEMUA KERJA CUMAN URUSAN DUIT. JADI RAKYAT INDONESI YANG BISA DIKATAKAN LEBIH SEPAROH MISKIN , JANGAN BERHARAP SEJAHTRA.',
+    'Yg kaya makin kaya yg miskin makin miskin itulah negara kita Indonesa karna harta kekayaan negri ini hanya d rasakan para elit anggota dewan rayat sisa g mungkin rayat bisa subur makmur klo para pejabatnya g mau Deket sama rakyatnya',
+    'Sementara rakyat sibuk tiap hari dari pagi sampai malam peras keringat banting tulang cuma buat mencari sesuap nasi.\n\nitu rakyat menengah ke bawah Rakyat miskin lagi sedih Sedihnya berjuang terhadap hidupnya terhadap keluarganya Sedangkan anda joget joget di gedung sana.\n\nKetidakpedulian yang dirasakan oleh masyarakat yan, erjuang untuk memenuhi kebutuhan dasar hidupnya, sementara pihak lain terlihat menikmati kemewahan dan kesenangan tanpa memikirkan kesulitan rakyat.\n\nKita bubarin aja dpr masak kita satu indonesia kalah sama satu gedung.\n\nIndonesia tanpa DPR akan tetap baik-baik saja, camkan itu',
+    'Mental bobrok pada di jadikan anggota dewan\n...lebih tepatnya mereka itu cuma makan gajih buta\n..percumah negara menggelontorkan dana tiap bulan buat ngasih gajih ke mereka.....',
+    'Bubar kn DPR penipu ranya ngk ada gunanya',
+    'Negara konoha benar benar negara bobrok yang kerja berat  keringat sampe kelubang pantat gaji cuman sekian puluh ribu perak',
+    'DPR enak pa naik gaji saya warga miskin kesusahan jualan aja sepi barang sembako pada naik ,',
+    'Gaji banyak insaalloh musibanya jugak banya soalnya menyangkut masarakat banyak ygsengsara orang miskin pasti doanya dikabulkan oleh alloh amin',
+    'Yang terekam lagi joged harusnya malu sak malu2nya.. dilihat anak, keluarga, kerabat dan tetangga dirumah..',
+    'Wah tambah enak hidup ny PR wakil rkyt, hidupny sngt trjamin, yg ky mkn ky, yg miskin  kckik msalh ekonomi yg smkin srba mhl, utang negara bnyk bangt, wahai PR penguasa negri Indonesia jdlh pr pemimpin yg bijaksana,brnts PR korupsi dngn bnr',
+    'Suatu malam, Umar bin Khattab r.a. keluar sendirian untuk memantau keadaan rakyatnya. Ia melihat ada seorang ibu bersama anak-anaknya di dalam tenda, mereka kelaparan. Sang ibu merebus air, pura-pura memasak agar anak-anaknya tenang dan tertidur, padahal sebenarnya tidak ada makanan.\n\nMelihat hal itu, Umar menangis dan segera kembali ke Baitul Mal. Ia meminta penjaga mengambilkan gandum dan minyak. Sang penjaga menawarkan untuk mengangkatkan barang itu, tetapi Umar menolak dan berkata:\n\n> “Apakah engkau mau memikul dosaku di hari kiamat?”\n\n\n\nMaka Umar sendiri yang memikul karung gandum itu di punggungnya. Ia membawanya ke tenda ibu tadi, lalu memasakkan sendiri makanan untuk keluarga miskin itu hingga anak-anak kenyang dan tertawa. Umar duduk menunggu sampai wajah mereka berseri-seri, barulah ia pulang dengan tenang.\n\nKami butuh wakil rakyat yang punya Mental seperti itu, tapi sayang, yg kita dapat malah sebaliknya,.. "wakil" yang tidak mewakili rakyat,.. 😑, bahkan cenderung mementingkan kebutuhan dan keinginan mereka sendiri, ya Allah, perilaku mereka menunjukan seolah mereka tidak takut akan apa yang kelak menimpa mereka di hari perhitungan',
+    'Menari di atas penderitaan rakyat miskin',
+    'Fungsi DPR apa sih . Masyarakat diluaran sana masih bnyak yg kekurangan dan harusnya pejabat malu rakyat nya kebanyakan memilih jd babu dinegara org pdhal Indonesia itu kaya akan sumber alam .',
+    'DPR, Pemerintah dan Lembaga yang menaikkan gaji anggota DPR, harusnya menaikkan taraf hidup rakyat, bukan menaikkan taraf hidup para anggota DPR yang sebelumnya sudah kaya raya !',
+    'Bagaimana cara nyiksa mereka biar menyesal!!! ⁉️',
+    'Indopiece Real😂',
+    'gedung DPR tempatnya tikus tikus berdasi cocoknya di kasih king kobra untuk berburu tikus',
+    'Pilih ustadz Adi Hidayat ❤🎉',
+    '.menggeramkan',
+    'Anggota dpr harus diperiksa kejiwaan nya,,',
+    'Ayo di demo lagi, itu tunjangan perumahan yg 50 jt bukan di hilangin tapi di pindahin ke tunjangan reses jadi tunjangan reses naik 50 juta, coba cari beritanya pasti ketemu...emg brengsek mereka itu, gk kapok juga di demo kemaren',
+    'ih geramnyo \nDPR Jelek',
+    'Ooo dasar dpr gembel minta gaji dari pajak rakyat gak ngotak eeee dpr eek',
+    'Aku bukan bela DPR yah, tapi aku cuma ngingetin cnn',
+    'Video joget itu kan setelah rapat tahunan, tapi kalian malah sandingkan video itu dalam pembahasan kenaikan gaji DPR, itu bisa buat orang beranggapan bahwa DPR joget karna merayakan naik gaji, lain kali fikir dulu sebelum uplod',
+    'Jika pembahasan kalian tentang gaji anggota dewan, itu bertolak belakang dengan video Anggita dewan yang joged, nanti orang malah mikir\n: DPR joged merayakan gajian,\nNah itu video kalian bahaya gimana sih',
+    'Hey cnn apakah kalian tidak sadar, dengan kesalahan kalian yang bikin demo kemarin',
+    'Dpr anj',
+    'Kerja seumur hidup gaji kecil tanpa pensiun, kerja 5 tahun ngantor saat ada rapat ada pensiun, itulah kesenjangan honorer pppk dibandingkan dengan DPR, kenapa DPR bisa dapat pensiun dan PPPK tidak dapat, karena yang membuat undang undang itu dewan😂😂😂, dan bahkan seandainya diperbolehkan ,DPR akan membuat aturan saat rapat DPR jumlah berapa kali anggota dpr kencing ke kamar mandi dapat tunjangan😂😂😂😂, misal rapat 4 jam, pergi kencing setiap 2 jam maka 2 kencing x 400 rb 😂😂😂😂😂😂😂😂',
+    'Hartati pak ,,,,,,,,rekening ready,,,,dana ,,,,,top ,,,,,,boleh cekgo',
+    'GAJI DPR HARUS UMR LAH YG GAJI MRK ITU KAN DARI PAJAK RAKYAT. Bisa mikir gak sih....',
+    'AndaikAn gaji PNS dan dpr serta karyawan di negeri ini paling tinggi 30 jt dan terkecil 10 jt maka rakyatnya insyaallah akan makmur sejahtera',
+    'kenapa pajak kita paling tinggi dari negara lain???karena buat bayarin monyet2 dpr yg pengen gaji tinggi,yg aturannya dibuat sendiri😅😅',
+    'Harus di batalkan tunjangan apa pun, masyarakat di bawah masih ada yang hanya minum air putih, gak bisa beli beras',
+    'D P R❗🙌\nDewan Perwakilan Rakyat😮❓\nWakil rakyat Naik mercy😳\nRakyatnya jalan kaki🤕\nWakil rakyat makan sate🍢😋\nRakyat nya makan tempe🧆😪\nIni yang dinamakan❓🙌\nMERDEKA TAPI BINGUNG🥶❗\nINI YANG Dinamakan❗🙌\nBINGUNG TAPI MERDEKAA❗❗',
+    'Nanggung jendral,kasih mereka 1 M per bulan biar aman jabatan anda..."pemerintahan yg lucu"!!!',
+    'Dasar DPR tlol itu yang kami bgo jangan sok lihat in dari pemerintah itu uang kita e',
+    'Bagi la rakyat kau bernafas pulak...kesian la dieorg',
+    'puan tuh hanya pandai bicara',
+    'Di Indonesia itu pengenya gaji DPR disetarakan dgn parlement di eropa yg bergaji ($/euro) mangkannya hinggah seratus juta ketemunya.\nPadahal mereka ajah gak mampu untuk menurunkan nilai tukar ($/euro) ke Rp seperti zaman Pak Habibi. 😂 gini kok nyebut rakyat yg mau bubarin DPR itu t*l*l.\nKalok gak mampu turunkan nilai tukar maunya bergaji setara dgn eropa tetap bubarin ajah.',
+    'alibi tunjangan, bagi2 hasil korup biar tutup mulut',
+    '𝙼𝚊𝚔𝚊𝚗𝚢𝚊 𝚝𝚛𝚊𝚗𝚜𝚙𝚊𝚛𝚊𝚗, 𝚍𝚒𝚜𝚒𝚊𝚛𝚔𝚊𝚗 𝚕𝚒𝚟𝚎',
+    'Terlaluan klu begitu.',
+    'yg joget2 pecatin smua',
+    '😂😂😂😂😂 ngakak gila',
+    'Puan bau tanah',
+    'Pantasan Rakyat pada marah kaya gini 😭😭😭'
+]
+
+# ==========================================
+# 4️⃣ FUNGSI KOREKSI MANUAL
+# ==========================================
+def force_correct_prediction(clean_text: str, prediction: str) -> str:
+    """
+    Fungsi ini memeriksa keberadaan kata-kata negatif yang sangat kuat 
+    (setelah distemming) dan mengoreksi prediksi menjadi 'negatif' 
+    jika model ML memberikan hasil yang salah (misalnya Positif).
+    """
+    STRONG_NEGATIVE_KEYWORDS = ['buruk', 'jelek', 'bobrok', 'korup', 'bobrol', 'salah', 'tolak', 'gagal', 'miskin']
+
+    if prediction.lower() == 'positif':
+        if any(keyword in clean_text for keyword in STRONG_NEGATIVE_KEYWORDS):
+            return 'Negatif (Koreksi Manual)'
     
-# --- 5. Perbandingan AUC/ROC (Menggunakan Model Terbaik) ---
+    return prediction
 
-# =============================
-# Binarisasi label (Wajib untuk multi-kelas)
-# =============================
-classes = np.unique(y_test)
-y_test_bin = label_binarize(y_test, classes=classes)
+# ==========================================
+# 5️⃣ TAMPILAN UTAMA & LOGIKA PREDIKSI
+# ==========================================
+st.markdown("<h1>ANALISIS SENTIMEN AI</h1>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Deteksi Opini Publik Isu Gaji DPR | Optimasi GAM-GWO</div>", unsafe_allow_html=True)
 
-# =============================
-# Fungsi hitung dan plot AUC/ROC
-# =============================
-def calculate_and_plot_roc(model, X_test, y_test_bin, model_name):
-    """Menghitung Micro-Average AUC dan memplot ROC Curve."""
-    if hasattr(model, "predict_proba"):
-        y_score = model.predict_proba(X_test)
-    elif hasattr(model, "decision_function"):
-        y_score = model.decision_function(X_test)
+if VECTORIZER is None or MODEL_TO_USE is None:
+    st.error("⚠️ Sistem gagal dimuat atau model tidak ditemukan.")
+    st.stop()
+
+# --- BLOK CONTOH KATA (Didefinisikan tanpa Ditampilkan) ---
+positive_words = ["mantap", "bagus", "sukses", "hebat", "terbaik", "cocok", "adil", "bijak", "bersyukur"]
+negative_words = ["tolak", "gagal", "rugi", "miskin", "korupsi", "mahal", "bodoh", "malu", "kecewa"]
+neutral_words = ["rapat", "usulan", "pimpinan", "komisi", "kebijakan", "anggaran", "membahas", "jakarta", "sidang"]
+# ---------------------------------------------
+
+
+# Layout Input
+with st.container():
+    col_img, col_input = st.columns([1, 2])
+
+    with col_img:
+        if EXTRA_IMAGE_B64:
+             st.markdown('<div class="image-left-style">', unsafe_allow_html=True)
+             st.image(f"data:image/jpeg;base64,{EXTRA_IMAGE_B64}", use_column_width=True)
+             st.markdown('</div>', unsafe_allow_html=True)
+        else:
+             st.info("Gambar tambahan tidak ditemukan.")
+
+    with col_input:
+        # Pilihan 1: Pilih dari 100 Komentar Sampel
+        st.markdown("<p style='font-weight: 600; margin-bottom: 5px;'>Pilih Komentar Sampel (100 Data):</p>", unsafe_allow_html=True)
+
+        st.selectbox(
+            label="Komentar Sampel",
+            options=["-- ATAU KETIK SENDIRI DI BAWAH --"] + SAMPLE_COMMENTS_DPR,
+            key="selected_sample",
+            on_change=update_input_from_selectbox,
+            label_visibility="collapsed"
+        )
+
+        # Pilihan 2: Input Manual
+        st.markdown("<p style='font-weight: 600; margin-top: 15px; margin-bottom: 5px;'>Atau Ketik Komentar Sendiri di Sini:</p>", unsafe_allow_html=True)
+
+        input_text = st.text_area(
+            label="Ketik Komentar",
+            value=st.session_state.current_input, 
+            placeholder="Ketik komentar di sini...",
+            height=100,
+            key="current_input",
+            label_visibility="collapsed"
+        )
+
+        analyze_button = st.button("🔍 ANALISIS SEKARANG")
+
+# Logika Hasil
+if analyze_button:
+    if st.session_state.current_input.strip() == "":
+        st.warning("⚠️ Harap masukkan teks komentar!")
     else:
-        return 0, None
+        # 1. Proses Prediksi ML
+        clean_text = text_preprocessing(st.session_state.current_input)
 
-    fpr, tpr, _ = roc_curve(y_test_bin.ravel(), y_score.ravel())
-    roc_auc = auc(fpr, tpr)
+        if VECTORIZER is None or MODEL_TO_USE is None:
+            st.error("⚠️ Analisis gagal: Model atau Vectorizer tidak tersedia.")
+            st.stop()
 
-    plt.plot(fpr, tpr, label=f'{model_name} (AUC = {roc_auc:.4f})')
-    return roc_auc
+        X = VECTORIZER.transform([clean_text])
+        ml_prediction = MODEL_TO_USE.predict(X)[0]
+        
+        # 2. Koreksi Manual (untuk memperbaiki bias model)
+        final_prediction = force_correct_prediction(clean_text, ml_prediction)
+        
+        # 3. Styling Hasil
+        
+        # Kita hanya perlu mengekstrak label utama (Positif, Negatif, Netral)
+        if 'koreksi' in final_prediction.lower() or final_prediction.lower() == "negatif":
+            label = "NEGATIF"
+            badge_bg = "linear-gradient(90deg, #dc2626, #f87171)"
+            icon = "😡"
+        elif final_prediction.lower() == "positif":
+            label = "POSITIF"
+            badge_bg = "linear-gradient(90deg, #059669, #34d399)"
+            icon = "😊"
+        else:
+            label = "NETRAL"
+            badge_bg = "linear-gradient(90deg, #64748b, #94a3b8)"
+            icon = "😐"
 
-# =============================
-# Plot semua model teroptimasi dalam 1 grafik
-# =============================
-plt.figure(figsize=(10, 7))
-
-auc_results = {}
-auc_results["Random Forest (Optimized)"] = calculate_and_plot_roc(best_rf_model, X_test, y_test_bin, "Random Forest (Optimized)")
-auc_results["Logistic Regression (Optimized)"] = calculate_and_plot_roc(best_lr_model, X_test, y_test_bin, "Logistic Regression (Optimized)")
-auc_results["SVM (Optimized)"] = calculate_and_plot_roc(best_svm_model, X_test, y_test_bin, "SVM (Optimized)")
-
-# Garis baseline
-plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Baseline (AUC = 0.50)')
-
-# Label grafik
-plt.xlabel('False Positive Rate', fontsize=12)
-plt.ylabel('True Positive Rate', fontsize=12)
-plt.title('ROC Curve Comparison (Optimized Models)', fontsize=14, fontweight='bold')
-plt.legend(loc='lower right', fontsize=10)
-plt.grid(True, linestyle=':', alpha=0.6)
-plt.show()
-
-# Tampilkan Hasil AUC dalam Tabel
-df_auc = pd.DataFrame(auc_results.items(), columns=['Model', 'AUC (Micro-Average Score)'])
-df_auc = df_auc.sort_values(by='AUC (Micro-Average Score)', ascending=False).reset_index(drop=True)
-
-print("\n--- 📈 Hasil Perbandingan AUC (Micro-Average) Model Teroptimasi ---")
-print(df_auc.to_string(index=False, float_format="%.4f"))
-print("-" * 60)
+        # Tampilkan Kartu Hasil (Tampilan debug dan footer dihapus)
+        st.markdown(f"""
+        <div class="result-container">
+            <div class="result-card">
+                <h4 style="color: #ccd6f6; margin-bottom: 5px;">HASIL ANALISIS SENTIMEN</h4>
+                <div class="sentiment-badge" style="background: {badge_bg};">
+                    {icon} &nbsp; {label}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)

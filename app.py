@@ -3,6 +3,7 @@ import joblib
 import re
 import string
 import base64
+import numpy as np
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
 
@@ -129,7 +130,7 @@ h1 {
     border-radius: 16px;
     padding: 20px 25px;
     width: 100%;
-    max-width: 400px;
+    max-width: 450px;
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -145,10 +146,12 @@ h1 {
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-.model-label-box {
+.model-info-box {
     margin-top: 15px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(100, 255, 218, 0.2);
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    border: 1px solid rgba(100, 255, 218, 0.1);
 }
 </style>
 """
@@ -194,13 +197,13 @@ def load_resources():
 
 VECTORIZER, MODELS = load_resources()
 
-# Pilih Random Forest sebagai model utama
+# Pilih Random Forest sebagai algoritma utama
 CHOSEN_MODEL_NAME = "Random Forest"
 MODEL_TO_USE = MODELS[CHOSEN_MODEL_NAME] if MODELS and CHOSEN_MODEL_NAME in MODELS else None
 
 
 # ==========================================
-# 3.5️⃣ DAFTAR DATASET LENGKAP (TIDAK ADA YANG DIKURANGI)
+# 3.5️⃣ DAFTAR DATASET LENGKAP
 # ==========================================
 SAMPLE_COMMENTS_ASLI = [
     'Dpr jancok dpr tidak adil dasar', 'Setuju gaji anggota dewan umr supaya orang tidak ambisisius berlomba lomba untuk menjadi anggota dewan karena tergiur gaji besar',
@@ -360,7 +363,6 @@ with st.container():
         analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
 if analyze_button:
-    # Mengambil nilai terbaru dari text_area
     current_val = st.session_state.current_input_area if st.session_state.current_input_area else st.session_state.current_input
     if current_val.strip() == "":
         st.warning("⚠️ Masukkan komentar!")
@@ -369,10 +371,15 @@ if analyze_button:
         clean_text = text_preprocessing(current_val)
         X = VECTORIZER.transform([clean_text])
         
-        # LABEL ASLI DARI MODEL
+        # 1. PERHITUNGAN PROBABILITAS (SKOR)
+        # Random Forest memberikan nilai probabilitas untuk setiap kelas
+        probs = MODEL_TO_USE.predict_proba(X)[0]
+        max_prob = np.max(probs) * 100 # Ambil skor tertinggi dalam persen
+        
+        # 2. LABEL ASLI DARI MODEL
         ml_prediction = MODEL_TO_USE.predict(X)[0]
         
-        # LABEL AKHIR SETELAH KOREKSI
+        # 3. LABEL AKHIR SETELAH KOREKSI
         final_prediction = force_correct_prediction(clean_text, ml_prediction)
         
         if 'koreksi' in final_prediction.lower() or final_prediction.lower() == "negatif":
@@ -382,7 +389,7 @@ if analyze_button:
         else:
             label, badge_bg, icon = "NETRAL", "linear-gradient(90deg, #64748b, #94a3b8)", "😐"
 
-        # Tampilkan Hasil Gabungan
+        # Tampilkan Hasil Gabungan dengan Info Algoritma & Perhitungan
         st.markdown(f"""
         <div class="result-container">
             <div class="result-card">
@@ -390,9 +397,15 @@ if analyze_button:
                 <div class="sentiment-badge" style="background: {badge_bg};">
                     {icon} &nbsp; {label}
                 </div>
-                <div class="model-label-box">
-                    <p style="color: #8892b0; font-size: 14px; margin-bottom: 0;">
-                        Label Asli (Model): <span style="color: #64ffda; font-weight: 600;">{ml_prediction.upper()}</span>
+                <div class="model-info-box">
+                    <p style="color: #64ffda; font-size: 14px; margin-bottom: 5px; font-weight: 600;">
+                        🤖 Algoritma: {CHOSEN_MODEL_NAME} (Optimasi GAM-GWO)
+                    </p>
+                    <p style="color: #ccd6f6; font-size: 13px; margin-bottom: 5px;">
+                        Label Asli Model: <span style="font-weight: 600;">{ml_prediction.upper()}</span>
+                    </p>
+                    <p style="color: #8892b0; font-size: 13px; margin-bottom: 0;">
+                        Skor Perhitungan (Confidence): <span style="color: #64ffda;">{max_prob:.2f}%</span>
                     </p>
                 </div>
             </div>

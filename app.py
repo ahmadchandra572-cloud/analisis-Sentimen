@@ -200,23 +200,59 @@ MODEL_TO_USE = MODELS[CHOSEN_MODEL_NAME] if MODELS and CHOSEN_MODEL_NAME in MODE
 
 
 # ==========================================
-# 3.5️⃣ DAFTAR DATASET (ASLI & BAKU)
+# 3.5️⃣ DAFTAR DATASET LENGKAP (TIDAK ADA YANG DIKURANGI)
 # ==========================================
 SAMPLE_COMMENTS_ASLI = [
-    'Dpr jancok dpr tidak adil dasar', 'Setuju gaji anggota dewan umr supaya orang tidak ambisisius',
-    'Brukakaka 1000% bayar PBB. Yang tinggal di kolong jembatan layak gk.', 'Mantap tarian jogetnya. Macam monyet dapat pisang.',
-    'Apa dpr . Mau jaga rakyat . Atau mau siksa rakyat .', 'Kadang memang bikin hati panas dan ngerasa nggak adil.',
-    'Semoga dapet musibah gaji dpr naik udh enak ksh tunjangan hidup', 'Pejabat paling terkorup indonesia.',
-    'Hebat ...anggota DPR bisa makmur.. dan suksesss', 'Kalau perkara rujab gk layak huni,, kan bisa uang kompensasi nya dijadiin buat renovasi',
-    'Saya lebih setuju gajih TNI di naikan TNI nyawa taruhannya', 'Mana dulu yang bilang klok probowo jadi presiden indo bakal makmur',
-    'BUBARKAN MRP DPR. ALOKASI GAJI MERRKA BUAT RAKYAT', 'Masih banyak pengangguran, masih ada yang kelaparan ,hebat',
-    'Mantap lanjutkan', 'Apa sih fungsi DPR MPR?', 'SI EKO PATRIO DAN GEROMBOLANYA ANGGOTA DPR PALING KOPLAK',
-    'Ga adil klu cuman anggota DPR yg naik guru tuh harusnya yg dinaikan', 'Gajih tidak naik aja orang masih banyak yang ingin jadi DPR apa lagi naik??',
-    'Rakyat kaya DPR miskin', 'Joget2 gaji naik, sangat menyakitkan rakyat miskin', 'yg kaya makin kaya yg miskin makin miskin',
-    'tenyata ge baru tau arti APK (Anjayyy Pemerintah Korupsi)', 'CUIHHH NAJIS JOGED2 DI ATAS PENDERITAAN RAKYAT',
-    'Pejabat makin kaya, Masyarakatnya mkin pada miskin', 'itulah anggota dpr pintar bersilat lidah, gaji di ganti nama menjadi tunjangan',
-    'Bikin miskin rakyat aja n dewan...', 'Yang kaya makin kaya..yang miskin makin miskin', 'kenaikan tunjangan anggota dpr dibayar dengan menaikan pajak',
-    'Bubar kn DPR penipu ranya ngk ada gunanya', 'Negara konoha benar benar negara bobrok', 'DPR enak pa naik gaji saya warga miskin kesusahan',
+    'Dpr jancok dpr tidak adil dasar', 'Setuju gaji anggota dewan umr supaya orang tidak ambisisius berlomba lomba untuk menjadi anggota dewan karena tergiur gaji besar',
+    'Brukakaka 1000% bayar PBB. Yang tinggal di kolong jembatan layak gk. Bangke bangke asal ngomong aja', 'Mantap tarian jogetnya. Macam monyet dapat pisang.',
+    'Iy ...,tapi kan anggota dewan.,pada orang kayna...beramal sedikit tuk rak yat kan lebih bagus...😮\n,.,', 'Iy ...,tapi kan anggota dewan.,pada orang kayna...beramal sedikit tuk rak yat kan lebih bagus...😮\n,.,',
+    'Apa dpr . Mau jaga rakyat . Atau mau siksa rakyat . Setuju . Nerima uang rakyat . Segitu banyak . Tolong dpr . Janga rampok rakyat', 'Kadang memang bikin hati panas dan ngerasa nggak adil. Tapi jangan sampai rasa iri itu bikin kita patah semangat ya ✊\nKita tetap jauh lebih berharga walau gaji 3jt per bulan ,karena kerja keras kita halal, nyata, dan hasilnya benar-benar dinikmati keluarga sendiri ❤️',
+    'Semoga dapet musibah gaji dpr naik udh enak ksh tunjangan hidup, gak naik juga gajinya dpr tetep gede itu, giliran buruh, kuli, guru, atau dibidang apapun itu malah segitu² aja gak ada kenaikan secara signifikan, gak adil sumpah gak waras negara ini..', 'Pejabat paling terkorup indonesia.\n-kerja ora iso\n-gajih besar hampir nyamain negara maju\n-pajak di tanggung negara\nHebat kan....',
+    'OHHH KITA BAYAR PAJAK DAN SEGALANYA SAMPAI APA APA DI KASIH PAJAK TERUS ADA LAGI BAYAR ROYALTI\n\nITU SEMUA UNTUK KENAIKAN GAJI DPR ? Dengan dalil kompensasi apalah itu halah bahasa halusnya hebat', 'Hebat ...anggota DPR bisa makmur.. dan suksesss...dan kaya raya....sampai dunia kiamat ...ha ha ha...kok rakyat nonton dan diam aja....ha ha ha......',
+    'Kalau perkara rujab gk layak huni,, kan bisa uang kompensasi nya dijadiin buat renovasi,, lagipula kompensasi 50jt perbulan x 5 tahun,, lah,, itu mah bisa beli 1 rumah harga 3 M,,', 'Saya lebih setuju gajih TNI di naikan TNI nyawa taruhannya, TNI Garda terdepan, kalau DPR banyak madhorot nya, habis habisin anggaran negara aja',
+    'Mana dulu yang bilang klok probowo jadi presiden indo bakal makmur konyol makan tuh yang dukung Wowo', 'Rumah ga layak langsung dapet duit...\nApa kabar bagi rakyat yg di wakilkan pada tidur di jalan',
+    'BUBARKAN MRP DPR. ALOKASI GAJI MERRKA BUAT RAKYAT, GURU YANG LEBIH BERMANFAAT DIBANDINGKAN MEREKA YG DUDUK DI DPR MPR.\n\nDUKUNG DEMO 25 AGUSTUS', 'Masih banyak pengangguran, masih ada yang kelaparan ,hebat',
+    'Rakyatnya masih kesulitan untuk tempat tidur \nDPR RI bilang mereka tinggal di rumah tidak layak \n\nPejabat negara ini aneh \nIndonesia pasti akan krisis dalam beberapa tahun kedepan \nDan akan terjadi kerusuhan yang besar dan itu sudah pasti \nMasyarakat tidak puas dengan kinerja pejabat negara', 'Ora usah nggo mumet...golput adalah jalan terbaik 👍👍👍👍👍🇮🇩🇮🇩🇮🇩🇮🇩🇮🇩',
+    'Memang indonesia hebat betul y, rakyat pasti setuju tu, KLO gaji DPR di naik kan, apa lah arti ny kami rakyat ini, ya kan boss?', 'Naik gaji sampe 100jt trs...tp ada yg blg GURU ADALAH BEBAN NEGARA...APA GAK SALAH.??\nINI YG COCOK JD BEBAN NEGARA',
+    'Rakyat.kelaparan.pak tolong kasih pekerjaan.yg layak.', 'Rakyat.kelaparan.pak tolong kasih pekerjaan.yg layak.',
+    'Mantap lanjutkan', 'Apa sih fungsi DPR MPR? Yang di rasakan adalah mereka seperti preman berkumpul di satu tempat.',
+    'Koplkkkk. Mau tunjang rumah tunjangan apapun tidak adil buat rakyat kecil. Kompen sasi rumah buat rakyat 15 jt. Itu juga berupa barang akhit nya gak tuntas karna modelnya rmhnua dah di atur. Dan harus nombok..lieuuuurrrrr', 'SI EKO PATRIO DAN GEROMBOLANYA ANGGOTA DPR PALING KOPLAK PASTI RAKYAT YG MEMILIH DIA NYESEL SEGEDE GUNUNG. GAK ADA DPR NEGARA TETAP JALAN ASAL ORANGNYA BENER, BUBARKAN DPR..\nSETUJU👍👍😁',
+    'Tunjangan rumah kata mereka yaaaaa terserahlaaaa,kalian berjoget kami nenontonkalian. Semoga yg maha adil allah swt melaknat kalian.para pemimpin yang tidak adil aamiin yrbl almin', 'Ga adil klu cuman anggota DPR yg naik guru tuh harusnya yg dinaikan mana janjinya pak presiden naikan gaji guru katanya.🙏',
+    'Yang setuju revolusi ,mari kita suarakan revolusi kita ulangan tragedi 97 hanya iti jalan keluaranya', 'Tunggu saja Revolusi itu akan terjadi ada waktu dan saatnya Rakyat Indonesia bergerak. Nikmatilh waktu kalian sebelum waktu itu habis dan datang.',
+    'Gajih tidak naik aja orang masih banyak yang ingin jadi DPR apa lagi naik??\nJustru harus nya tunjangan nya di turunin agar jdi dpr ikhlas demi rakyat bukan demi gajih\nYg setuju like', 'Rakyat kaya DPR miskin', 'Kami rakyat miskin sangat setuju kalau ģaji dpr sama dgn gaji pns.',
+    'Joget2 gaji naik, sangat menyakitkan rakyat miskin dan sulit cari makan, sdg mereka di gaji dg uang rakyat.😮', 'begini kah hidup di indonesia dan begini kah yang diingin kan oleh para leluhur warga menangis karena kemeskinan sedangkan dpr yang sudah kaya tambah kaya dan koruptor di negara ini semakin banyak',
+    'jangan makan uang rakyat mikirin orang-orang yang nggak mampu yang miskin yang mulung dan lain-lain jangan mikirin uang pribadi mikirin orang-orang di bawah jangan makan uang haram', 'Cokk aku sebagai rakyat tidak ridho gaji anggota dewan dinaikkan begitu juga konpensasi rumah juga dinaikkan saya tidak ridho dunia akhirat, rumah anggota dewan bagus bagus kaya² seperti Bramasta, eko patrio harusnya yang dijadikan anggota dewan itu orang miskin insyaallah jujur baik akhlaknya tidak semena mena.',
+    'yg kaya makin kaya yg miskin makin miskin', 'Aku org Malaysia ketar ketir....😊😊😊 Gji DPR anggota Parlimen dibyar ratusan Juta RP....Gaji Guru hnya dibyar 300 Ribu..😢😢😢...Guru beban ngra bilangnya... Memang ngra yg x pya rasa malu...TKI yg kerja potong sawit pn di Malaysia dibayar gaji tinggi ..',
+    'tenyata ge baru tau arti APK (Anjayyy Pemerintah Korupsi)', 'CUIHHH NAJIS JOGED2 DI ATAS PENDERITAAN RAKYAT,,NEGARA BOBROK MIRIS MIRISS...',
+    'Pejabat makin kaya, Masyarakatnya mkin pada miskin.. Ampun parah ya Allah😔', 'tidak punya malu, di saat rakyat menderita di cekik bayar pajak, mereka malah joget² dapat kenaikan gaji... terlaknat kalian semua yang menari nari di atas penderitaan rakyat',
+    'itulah anggota dpr pintar bersilat lidah, gaji di ganti nama menjadi tunjangan... banyak rakyat yg sehari makan cuma 1x bahkan ada yg tidak makan seharian, ini malah wakil nya joget2 senang dpt tunjangan 100jt/ bulan...',
+    'Bikin miskin rakyat aja n dewan...', 'Kami rakyat sangat kecewa sama DPR semoga pemilu berikutnya nggak ada yg milih mereka, semoga rakyat segera sadar...',
+    'Pikiran jelek sy bnr di naikan gaji dngn atas namakan kopensasi UANG rumah tinggl . Karna skrang kan segala bhn bakar mahal semua apa lagi bhn bakar buat makan', 'rakyat menangis,mbok ya lebih memikirkan nasib rakyat dari kalangan menengah k bawah ibu /bpk yg terhormat,masih sangat bnyak rakyat2 miskin kekurangan pangan,tidak ada tempat tinggal,kurang perhatian aparat tentang kesehatan',
+    'Yang kaya makin kaya..yang miskin makin miskin', 'Rombongan orang miskin, telor bensin rumah beras, minta ditunjangan, yang bayar rakyat lewat pajak, sedangkan lo semua nga kena pajak penghasil gw sebagai rakyat nga iklhas lahir batin semoga lo semua dapat balasan yang setimpal, aamiin',
+    'kenaikan tunjangan anggota dpr dibayar dengan menaikan pajak yg semakin mencekik rakyat...... BIADAP MUKA2 ANGGOTA DPR RI GAK PUNYA MALU', 'RAKYAT SANGAT KESULITAN BUAT BELI BERAS, EHH ANGOTA DPR MALAH DAPAT TUNJANGAN BERAS, SANGAT MENYEDIHKAN. RAKYAT BEGITU MISKINNYA. MALAH TUNJANGAN BERAS NYA LUAR BIASA',
+    'Yg kaya makin kaya yg miskin makin miskin itulah negara kita Indonesa karna harta kekayaan negri ini hanya d rasakan para elit anggota dewan rayat sisa g mungkin rayat bisa subur makmur klo para pejabatnya g mau Deket sama rakyatnya', 'Sementara rakyat sibuk tiap hari dari pagi sampai malam peras keringat banting tulang cuma buat mencari sesuap nasi.',
+    'Mental bobrok pada di jadikan anggota dewan ...lebih tepatnya mereka itu cuma makan gajih buta ..percumah negara menggelontorkan dana tiap bulan buat ngasih gajih ke mereka.....',
+    'Bubar kn DPR penipu ranya ngk ada gunanya', 'Negara konoha benar benar negara bobrok yang kerja berat keringat sampe kelubang pantat gaji cuman sekian puluh ribu perak',
+    'DPR enak pa naik gaji saya warga miskin kesusahan jualan aja sepi barang sembako pada naik ,', 'Gaji banyak insaalloh musibanya jugak banya soalnya menyangkut masarakat banyak ygsengsara orang miskin pasti doanya dikabulkan oleh alloh amin',
+    'Yang terekam lagi joged harusnya malu sak malu2nya.. dilihat anak, keluarga, kerabat dan tetangga dirumah..', 'Wah tambah enak hidup ny PR wakil rkyt, hidupny sngt trjamin, yg ky mkn ky, yg miskin kckik msalh ekonomi yg smkin srba mhl, utang negara bnyk bangt',
+    'Suatu malam, Umar bin Khattab r.a. keluar sendirian untuk memantau keadaan rakyatnya. Ia melihat ada seorang ibu bersama anak-anaknya di dalam tenda, mereka kelaparan. Sang ibu merebus air, pura-pura memasak agar anak-anaknya tenang dan tertidur.',
+    'Menari di atas penderitaan rakyat miskin', 'Fungsi DPR apa sih . Masyarakat diluaran sana masih bnyak yg kekurangan dan harusnya pejabat malu rakyat nya kebanyakan memilih jd babu dinegara org pdhal Indonesia itu kaya akan sumber alam .',
+    'DPR, Pemerintah dan Lembaga yang menaikkan gaji anggota DPR, harusnya menaikkan taraf hidup rakyat, bukan menaikkan taraf hidup para anggota DPR yang sebelumnya sudah kaya raya !', 'Bagaimana cara nyiksa mereka biar menyesal!!! ⁉️',
+    'Indopiece Real😂', 'gedung DPR tempatnya tikus tikus berdasi cocoknya di kasih king kobra untuk berburu tikus',
+    'Pilih ustadz Adi Hidayat ❤🎉', '.menggeramkan', 'Anggota dpr harus diperiksa kejiwaan nya,,',
+    'Ayo di demo lagi, itu tunjangan perumahan yg 50 jt bukan di hilangin tapi di pindahin ke tunjangan reses jadi tunjangan reses naik 50 juta, coba cari beritanya pasti ketemu...emg brengsek mereka itu',
+    'ih geramnyo \nDPR Jelek', 'Ooo dasar dpr gembel minta gaji dari pajak rakyat gak ngotak eeee dpr eek',
+    'Aku bukan bela DPR yah, tapi aku cuma ngingetin cnn', 'Video joget itu kan setelah rapat tahunan, tapi kalian malah sandingkan video itu dalam pembahasan kenaikan gaji DPR, itu bisa buat orang beranggapan bahwa DPR joget karna merayakan naik gaji',
+    'Jika pembahasan kalian tentang gaji anggota dewan, itu bertolak belakang dengan video Anggita dewan yang joged, nanti orang malah mikir : DPR joged merayakan gajian', 'Hey cnn apakah kalian tidak sadar, dengan kesalahan kalian yang bikin demo kemarin',
+    'Dpr anj', 'Kerja seumur hidup gaji kecil tanpa pensiun, kerja 5 tahun ngantor saat ada rapat ada pensiun, itulah kesenjangan honorer pppk dibandingkan dengan DPR',
+    'Hartati pak ,,,,,,,,rekening ready,,,,dana ,,,,,top ,,,,,,boleh cekgo', 'GAJI DPR HARUS UMR LAH YG GAJI MRK ITU KAN dari PAJAK RAKYAT. Bisa mikir gak sih....',
+    'AndaikAn gaji PNS dan dpr serta karyawan di negeri ini paling tinggi 30 jt dan terkecil 10 jt maka rakyatnya insyaallah akan makmur sejahtera', 'kenapa pajak kita paling tinggi dari negara lain???karena buat bayarin monyet2 dpr yg pengen gaji tinggi,yg aturannya dibuat sendiri😅😅',
+    'Harus di batalkan tunjangan apa pun, masyarakat di bawah masih ada yang hanya minum air putih, gak bisa beli beras', 'D P R❗🙌\nDewan Perwakilan Rakyat😮❓\nWakil rakyat Naik mercy😳\nRakyatnya jalan kaki🤕\nWakil rakyat makan sate🍢😋\nRakyat nya makan tempe🧆😪',
+    'Nanggung jendral,kasih mereka 1 M per bulan biar aman jabatan anda..."pemerintahan yg lucu"!!!', 'Dasar DPR tlol itu yang kami bgo jangan sok lihat in dari pemerintah itu uang kita e',
+    'Bagi la rakyat kau bernafas pulak...kesian la dieorg', 'puan tuh hanya pandai bicara',
+    'Di Indonesia itu pengenya gaji DPR disetarakan dgn parlement di eropa yg bergaji ($/euro) mangkannya hinggah seratus juta ketemunya.',
+    'alibi tunjangan, bagi2 hasil korup biar tutup mulut', '𝙼𝚊𝚔𝚊𝚗𝚢𝚊 𝚝𝚛𝚊𝚗𝚜𝚙𝚊𝚛𝚊𝚗, 𝚍𝚒𝚜𝚒𝚊𝚛𝚔𝚊𝚗 𝚕𝚒𝚟𝚎',
+    'Terlaluan klu begitu.', 'yg joget2 pecatin smua', '😂😂😂😂😂 ngakak gila',
     'Puan bau tanah', 'Pantasan Rakyat pada marah kaya gini 😭😭😭'
 ]
 
@@ -324,6 +360,7 @@ with st.container():
         analyze_button = st.button("🔍 ANALISIS SEKARANG")
 
 if analyze_button:
+    # Mengambil nilai terbaru dari text_area
     current_val = st.session_state.current_input_area if st.session_state.current_input_area else st.session_state.current_input
     if current_val.strip() == "":
         st.warning("⚠️ Masukkan komentar!")
@@ -345,7 +382,7 @@ if analyze_button:
         else:
             label, badge_bg, icon = "NETRAL", "linear-gradient(90deg, #64748b, #94a3b8)", "😐"
 
-        # Tampilkan Hasil Gabungan (Label Akhir + Label Asli Model)
+        # Tampilkan Hasil Gabungan
         st.markdown(f"""
         <div class="result-container">
             <div class="result-card">

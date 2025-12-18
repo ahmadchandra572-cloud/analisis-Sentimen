@@ -352,10 +352,10 @@ SAMPLE_COMMENTS_BAKU = [
     'Kepantasan sosiologis harus menjadi pertimbangan dalam menentukan besaran tunjangan bagi pejabat.',
     'Fungsi pengawasan DPR harus diperkuat untuk memastikan setiap kebijakan pemerintah tepat sasaran.',
     'Kesenjangan pendapatan antara pejabat dan rakyat jelata tidak boleh dibiarkan semakin melebar.',
-    'Dialog terbuka antara DPR dan elemen masyarakat diperlukan sebelum mengesahkan kenaikan anggaran internal.',
+    'Dialog terbuka antara DPR and elemen masyarakat diperlukan sebelum mengesahkan kenaikan anggaran internal.',
     'Pembangunan infrastruktur di pelosok negeri membutuhkan dukungan pendanaan yang sangat besar.',
     'Ketegasan dalam memotong anggaran yang tidak produktif menunjukkan kualitas kepemimpinan yang baik.',
-    'Sinergi antara pemerintah dan DPR dalam penghematan energi dan biaya operasional harus ditingkatkan.',
+    'Sinergi antara pemerintah and DPR dalam penghematan energi and biaya operasional harus ditingkatkan.',
     'Aspirasi masyarakat terkait penolakan tunjangan perumahan merupakan bentuk kepedulian warga negara.',
     'Akuntabilitas moral adalah beban yang harus dipikul oleh setiap individu yang duduk di kursi parlemen.',
     'Standardisasi gaji pejabat publik harus mengacu pada kemampuan fiskal negara secara jangka panjang.',
@@ -369,17 +369,17 @@ SAMPLE_COMMENTS_BAKU = [
     'Efisiensi belanja pegawai merupakan langkah strategis untuk mengurangi defisit anggaran pendapatan negara.',
     'Transformasi digital di parlemen seharusnya mampu mengurangi biaya operasional yang tidak perlu.',
     'Keadilan bagi tenaga honorer harus diperjuangkan sejajar dengan pembahasan tunjangan pejabat.',
-    'Institusi DPR harus menjadi simbol kesederhanaan dan kerja keras bagi seluruh rakyat Indonesia.',
-    'Masa depan bangsa ditentukan oleh keberanian pemimpin dalam mengambil keputusan yang adil dan jujur.',
+    'Institusi DPR harus menjadi simbol kesederhanaan and kerja keras bagi seluruh rakyat Indonesia.',
+    'Masa depan bangsa ditentukan oleh keberanian pemimpin dalam mengambil keputusan yang adil and jujur.',
     'Pertumbuhan ekonomi yang inklusif hanya bisa dicapai melalui tata kelola keuangan yang transparan.',
     'Rakyat akan selalu mendukung kebijakan pemerintah yang benar-benar berfokus pada kebutuhan dasar warga.',
     'Kritik terhadap kenaikan tunjangan adalah bagian dari hak demokrasi yang dijamin oleh undang-undang.',
-    'Integritas dan dedikasi harus menjadi landasan utama bagi setiap penyelenggara negara di Indonesia.',
+    'Integritas and dedikasi harus menjadi landasan utama bagi setiap penyelenggara negara di Indonesia.',
     'Pemerintah perlu meninjau kembali urgensi pemberian fasilitas tambahan bagi pejabat di masa krisis.',
     'Kesadaran kolektif untuk melakukan penghematan anggaran harus dimulai dari jajaran pimpinan tertinggi.',
-    'Distribusi pendapatan yang merata akan menjamin stabilitas keamanan dan ketertiban masyarakat.',
+    'Distribusi pendapatan yang merata akan menjamin stabilitas keamanan and ketertiban masyarakat.',
     'Program jaminan sosial bagi rakyat miskin lebih mendesak untuk didanai daripada tunjangan mewah.',
-    'Keputusan politik yang bijak adalah yang mampu menyentuh hati rakyat dan memberikan solusi nyata.',
+    'Keputusan politik yang bijak adalah yang mampu menyentuh hati rakyat and memberikan solusi nyata.',
     'Setiap undang-undang yang disahkan harus memberikan dampak positif bagi kemajuan ekonomi rakyat.',
     'Transparansi publik dalam hal gaji pejabat akan mengurangi potensi penyalahgunaan wewenang.',
     'Sikap empati terhadap kesulitan warga adalah modal utama bagi seorang wakil rakyat yang amanah.',
@@ -388,26 +388,26 @@ SAMPLE_COMMENTS_BAKU = [
     'Peningkatan taraf hidup masyarakat bawah harus menjadi misi utama setiap wakil rakyat di parlemen.',
     'Ketimpangan sosial adalah musuh demokrasi yang harus dilawan dengan kebijakan anggaran yang adil.',
     'Negara harus hadir dalam memberikan perlindungan ekonomi bagi setiap warga negara tanpa kecuali.',
-    'DPR diharapkan menjadi jembatan aspirasi yang kokoh antara rakyat dan pemerintah pusat.',
+    'DPR diharapkan menjadi jembatan aspirasi yang kokoh antara rakyat and pemerintah pusat.',
     'Etika politik melarang penggunaan anggaran negara untuk kepentingan kemewahan pribadi pejabat.',
-    'Penyederhanaan birokrasi dan anggaran adalah kunci efisiensi dalam pemerintahan modern.',
+    'Penyederhanaan birokrasi and anggaran adalah kunci efisiensi dalam pemerintahan modern.',
     'Rakyat akan menghormati pemimpin yang berani hidup sederhana di tengah kesulitan bangsanya.',
     'Kebijakan anggaran yang pro-rakyat akan meningkatkan martabat bangsa di mata internasional.',
     'Setiap anggota legislatif wajib menjunjung tinggi nilai-nilai kejujuran dalam mengelola dana negara.',
-    'Keberhasilan pembangunan nasional diukur dari berkurangnya angka kemiskinan dan pengangguran.',
-    'DPR harus menjadi contoh dalam implementasi tata kelola lembaga yang bersih dan akuntabel.',
+    'Keberhasilan pembangunan nasional diukur dari berkurangnya angka kemiskinan and pengangguran.',
+    'DPR harus menjadi contoh dalam implementasi tata kelola lembaga yang bersih and akuntabel.',
     'Masyarakat berharap adanya reformasi dalam sistem pemberian tunjangan bagi seluruh pejabat negara.',
     'Kekuatan sebuah negara terletak pada kepercayaan rakyatnya terhadap para pemimpin di parlemen.',
     'Sikap kritis masyarakat adalah pendorong utama bagi perbaikan kinerja institusi pemerintahan.',
     'Penghapusan fasilitas yang berlebihan merupakan langkah nyata dalam mendukung penghematan nasional.',
     'Pembangunan sumber daya manusia lebih penting daripada pemenuhan fasilitas mewah elit politik.',
-    'Pemerintah dan DPR harus bekerja sama dalam menciptakan kebijakan fiskal yang sehat dan kuat.',
-    'Amanah rakyat harus dijalankan dengan penuh rasa syukur dan dedikasi tinggi bagi nusa dan bangsa.',
+    'Pemerintah and DPR harus bekerja sama dalam menciptakan kebijakan fiskal yang sehat and kuat.',
+    'Amanah rakyat harus dijalankan dengan penuh rasa syukur and dedikasi tinggi bagi nusa and bangsa.',
     'Setiap kebijakan ekonomi harus diarahkan pada terciptanya lapangan kerja baru bagi generasi muda.',
-    'Kepedulian terhadap lingkungan dan masalah sosial harus tecermin dalam anggaran pembangunan.',
+    'Kepedulian terhadap lingkungan and masalah sosial harus tecermin dalam anggaran pembangunan.',
     'DPR wajib memastikan bahwa pajak yang dibayarkan rakyat kembali dalam bentuk pelayanan publik berkualitas.',
-    'Moralitas dan etika harus selalu mendahului kepentingan politik dalam setiap rapat paripurna.',
-    'Kepercayaan publik adalah aset yang sangat mahal dan harus dijaga dengan kinerja yang nyata.',
+    'Moralitas and etika harus selalu mendahului kepentingan politik dalam setiap rapat paripurna.',
+    'Kepercayaan publik adalah aset yang sangat mahal and harus dijaga dengan kinerja yang nyata.',
     'Sistem demokrasi akan berjalan baik jika ada transparansi penuh dalam penggunaan dana negara.',
     'Kenaikan tunjangan tidak boleh menjadi alasan bagi penurunan semangat pengabdian kepada rakyat.',
     'Rakyat merindukan sosok pemimpin yang lebih banyak bekerja daripada menuntut fasilitas tambahan.',
@@ -441,7 +441,7 @@ if VECTORIZER is None or MODEL_TO_USE is None:
     st.error("⚠️ Sistem gagal dimuat atau model tidak ditemukan.")
     st.stop()
 
-# --- BLOK CONTOH KATA (Utuh Sesuai Aslinya) ---
+# --- BLOK CONTOH KATA ---
 positive_words = ["mantap", "bagus", "sukses", "hebat", "terbaik", "cocok", "adil", "bijak", "bersyukur"]
 negative_words = ["tolak", "gagal", "rugi", "miskin", "korupsi", "mahal", "bodoh", "malu", "kecewa"]
 neutral_words = ["rapat", "usulan", "pimpinan", "komisi", "kebijakan", "anggaran", "membahas", "jakarta", "sidang"]
@@ -462,7 +462,7 @@ with st.container():
 
     with col_input:
         # Pilihan Kategori 1: Dataset Asli
-        st.markdown("<p style='font-weight: 600; margin-bottom: 5px;'>1. Pilih dari Dataset Asli (Campuran):</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-weight: 600; margin-bottom: 5px;'>1. Pilih dari Dataset Asli:</p>", unsafe_allow_html=True)
         st.selectbox(
             label="Komentar Sampel Asli",
             options=["-- PILIH DATASET ASLI --"] + SAMPLE_COMMENTS_ASLI,
@@ -472,7 +472,7 @@ with st.container():
         )
 
         # Pilihan Kategori 2: Dataset Baku
-        st.markdown("<p style='font-weight: 600; margin-top: 10px; margin-bottom: 5px;'>2. Pilih dari Dataset Baku (Formal):</p>", unsafe_allow_html=True)
+        st.markdown("<p style='font-weight: 600; margin-top: 10px; margin-bottom: 5px;'>2. Pilih dari Dataset Baku:</p>", unsafe_allow_html=True)
         st.selectbox(
             label="Komentar Sampel Baku",
             options=["-- PILIH DATASET BAKU --"] + SAMPLE_COMMENTS_BAKU,
@@ -509,7 +509,7 @@ if analyze_button:
         X = VECTORIZER.transform([clean_text])
         ml_prediction = MODEL_TO_USE.predict(X)[0]
         
-        # 2. Koreksi Manual (untuk memperbaiki bias model)
+        # 2. Koreksi Manual
         final_prediction = force_correct_prediction(clean_text, ml_prediction)
         
         # 3. Styling Hasil

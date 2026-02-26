@@ -137,7 +137,7 @@ VECTORIZER, MODELS = load_resources()
 
 SAMPLE_DATA_ASLI = [
     # Data asli dari kode awal kamu
-    ('Setuju gaji anggota dewan umr supaya orang tidak ambisisius', 'posisi'),
+    ('Setuju gaji anggota dewan umr supaya orang tidak ambisisius', 'positif'),
     ('Brukakaka 1000% bayar PBB. Yang tinggal di kolong jembatan layak gk.', 'Negatif'),
     ('Mantap tarian jogetnya. Macam monyet dapat pisang.', 'Positif'),
     ('Apa dpr . Mau jaga rakyat . Atau mau siksa rakyat .', 'Negatif'),

@@ -137,12 +137,10 @@ VECTORIZER, MODELS = load_resources()
 
 SAMPLE_DATA_ASLI = [
     # Data asli dari kode awal kamu
-    ('Dpr jancok dpr tidak adil dasar', 'Negatif'),
-    ('Setuju gaji anggota dewan umr supaya orang tidak ambisisius', 'Positif'),
+    ('Setuju gaji anggota dewan umr supaya orang tidak ambisisius', 'posisi'),
     ('Brukakaka 1000% bayar PBB. Yang tinggal di kolong jembatan layak gk.', 'Negatif'),
     ('Mantap tarian jogetnya. Macam monyet dapat pisang.', 'Positif'),
     ('Apa dpr . Mau jaga rakyat . Atau mau siksa rakyat .', 'Negatif'),
-    ('Puan bau tanah', 'Negatif'),
     ('Pantasan Rakyat pada marah kaya gini 😭😭😭', 'Negatif'),
     
     # Tambahan variasi bahasa gaul/medsos (tidak baku)

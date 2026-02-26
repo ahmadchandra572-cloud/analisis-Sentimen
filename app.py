@@ -134,22 +134,53 @@ VECTORIZER, MODELS = load_resources()
 # 3️⃣ DATASET ASLI & BAKU DENGAN LABEL ASLI
 # ==========================================
 # Format: (Teks Komentar, Label Asli Dataset)
+
 SAMPLE_DATA_ASLI = [
+    # Data asli dari kode awal kamu
     ('Dpr jancok dpr tidak adil dasar', 'Negatif'),
     ('Setuju gaji anggota dewan umr supaya orang tidak ambisisius', 'Positif'),
     ('Brukakaka 1000% bayar PBB. Yang tinggal di kolong jembatan layak gk.', 'Negatif'),
     ('Mantap tarian jogetnya. Macam monyet dapat pisang.', 'Positif'),
     ('Apa dpr . Mau jaga rakyat . Atau mau siksa rakyat .', 'Negatif'),
     ('Puan bau tanah', 'Negatif'),
-    ('Pantasan Rakyat pada marah kaya gini 😭😭😭', 'Negatif')
+    ('Pantasan Rakyat pada marah kaya gini 😭😭😭', 'Negatif'),
+    
+    # Tambahan variasi bahasa gaul/medsos (tidak baku)
+    ('DPR naik gaji lagi, rakyat kok makin susah ya 😭', 'Negatif'),
+    ('Enak banget jadi anggota dewan, gaji gede fasilitas mewah', 'Negatif'),
+    ('Gaji DPR naik kok ga naik upah buruh? DPR pro rakyat mana?', 'Negatif'),
+    ('Mantap lah, kerja sebulan dapet ratusan juta, enak tenan', 'Positif'),
+    ('DPR cuma bisa bikin rakyat sengsara, bubarin aja', 'Negatif'),
+    ('Setuju banget gaji DPR dinaikin, biar lebih semangat kerja', 'Positif'),
+    ('Pantesan DPR cuek sama rakyat, gajinya udah kayak sultan', 'Negatif'),
+    ('Gaji kecil katanya, makanya korupsi mulu wkwkwk', 'Negatif'),
+    ('Terima kasih DPR sudah perjuangkan kesejahteraan rakyat 🙏', 'Positif'),
+    ('Naikin tunjangan lagi? mending dana itu buat bansos', 'Negatif'),
+    ('DPR kok gak pernah mikirin nasib rakyat kecil ya?', 'Negatif'),
+    ('Bagus dong gaji naik, biar ga tergoda korupsi lagi', 'Positif'),
 ]
 
 SAMPLE_DATA_BAKU = [
+    # Data asli dari kode awal kamu
     ('Kebijakan kenaikan tunjangan anggota DPR harus mempertimbangkan kondisi ekonomi masyarakat.', 'Netral'),
     ('Transparansi anggaran dalam pengalokasian dana fasilitas perumahan anggota dewan sangat diperlukan.', 'Netral'),
     ('Seharusnya pemerintah lebih mengutamakan peningkatan kesejahteraan guru honorer.', 'Positif'),
     ('Masyarakat menaruh harapan besar agar anggota DPR menolak fasilitas mewah.', 'Positif'),
-    ('Semoga setiap keputusan yang diambil di gedung dewan selalu mendapatkan rida dari Tuhan Yang Maha Esa.', 'Positif')
+    ('Semoga setiap keputusan yang diambil di gedung dewan selalu mendapatkan rida dari Tuhan Yang Maha Esa.', 'Positif'),
+    
+    # Tambahan variasi bahasa formal/baku
+    ('Kenaikan gaji anggota DPR perlu disertai evaluasi kinerja yang transparan dan akuntabel.', 'Netral'),
+    ('Pemerintah disarankan untuk memprioritaskan anggaran pendidikan dan kesehatan di atas tunjangan legislatif.', 'Negatif'),
+    ('Peningkatan fasilitas perumahan bagi anggota dewan sebaiknya dipertimbangkan kembali mengingat kondisi fiskal negara.', 'Netral'),
+    ('Anggota DPR diharapkan dapat menunjukkan empati yang lebih besar terhadap kesulitan ekonomi masyarakat.', 'Negatif'),
+    ('Kebijakan remunerasi legislatif harus sejalan dengan prinsip keadilan sosial dan pemerataan kesejahteraan.', 'Netral'),
+    ('Peningkatan kesejahteraan anggota dewan dapat memotivasi kinerja yang lebih baik dalam legislasi.', 'Positif'),
+    ('Perlu adanya mekanisme pengawasan publik terhadap penggunaan anggaran fasilitas anggota DPR.', 'Netral'),
+    ('Masyarakat berharap DPR lebih fokus pada pembahasan RUU yang pro-rakyat daripada kesejahteraan pribadi.', 'Negatif'),
+    ('Kenaikan tunjangan sebaiknya diiringi dengan peningkatan tanggung jawab dan integritas anggota dewan.', 'Netral'),
+    ('DPR memiliki peran strategis dalam memperjuangkan kesejahteraan rakyat secara keseluruhan.', 'Positif'),
+    ('Anggaran negara seharusnya dialokasikan secara proporsional untuk kepentingan mayoritas rakyat.', 'Netral'),
+    ('Peningkatan fasilitas kerja anggota dewan perlu dibarengi dengan peningkatan pelayanan publik yang nyata.', 'Netral'),
 ]
 
 def force_correct_prediction(clean_text: str, prediction: str) -> str:
